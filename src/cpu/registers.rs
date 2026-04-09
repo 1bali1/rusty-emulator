@@ -11,10 +11,10 @@ pub struct Registers
 
 impl Registers
 {
-    pub const MASK_ZERO: u8 = 0x80;
-    pub const MASK_SUBTRACT: u8 = 0x40;
-    pub const MASK_HALF_CARRY: u8 = 0x20;
-    pub const MASK_CARRY: u8 = 0x10;
+    pub const MASK_ZERO_Z: u8 = 0x80;
+    pub const MASK_SUBTRACT_N: u8 = 0x40;
+    pub const MASK_HALF_CARRY_H: u8 = 0x20;
+    pub const MASK_CARRY_C: u8 = 0x10;
 
 
     pub fn new() -> Self

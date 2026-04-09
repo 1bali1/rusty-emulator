@@ -46,11 +46,11 @@ impl CPU
     {
         let incdVal = value.wrapping_add(1);
 
-        self.registers.setFlag(Registers::MASK_ZERO, incdVal == 0);
-        self.registers.setFlag(Registers::MASK_SUBTRACT, false);
+        self.registers.setFlag(Registers::MASK_ZERO_Z, incdVal == 0);
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
 
         let overflow = (value & 0x0f) + 1 > 0x0f;
-        self.registers.setFlag(Registers::MASK_HALF_CARRY, overflow);
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, overflow);
 
         return incdVal;
     }
@@ -59,11 +59,11 @@ impl CPU
     {
         let decdVal = value.wrapping_sub(1);
 
-        self.registers.setFlag(Registers::MASK_ZERO, decdVal == 0);
-        self.registers.setFlag(Registers::MASK_SUBTRACT, true);
+        self.registers.setFlag(Registers::MASK_ZERO_Z, decdVal == 0);
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, true);
 
         let overflow = (value & 0x0F) == 0; // 0000 
-        self.registers.setFlag(Registers::MASK_HALF_CARRY, overflow);
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, overflow);
 
         return decdVal;
     }
