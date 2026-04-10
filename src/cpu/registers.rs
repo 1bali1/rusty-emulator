@@ -49,6 +49,17 @@ impl Registers
     pub fn setBc(&mut self, value: u16)
     {
         self.b = (value >> 8) as u8;
-        self.c = (value & 0xFF) as u8;
+        self.c = (value & 0xff) as u8;
+    }
+
+    pub fn getDe(&self) -> u16
+    {
+        return ((self.d as u16) << 8) | (self.e as u16);    
+    }
+
+    pub fn setDe(&mut self, value: u16)
+    {
+        self.d = (value >> 8) as u8;
+        self.e = (value & 0xff) as u8;
     }
 }
