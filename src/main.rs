@@ -14,11 +14,8 @@ fn main()
     let mut bus = Bus::new();
     let mut cpu = CPU::new();
 
-
-    for _ in 0..10
+    for _ in 0..13
     {
         cpu.step(&mut bus);
     }
-
-    println!("{}", cpu.registers.b);
 }

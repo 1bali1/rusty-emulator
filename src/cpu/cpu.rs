@@ -26,6 +26,8 @@ impl CPU
         cpu.instructions[0x06] = CPU::ldB;
 
         cpu.instructions[0x11] = CPU::ldDe;
+        cpu.instructions[0x12] = CPU::ldDeAddressA;
+        cpu.instructions[0x13] = CPU::incDe;
 
         return cpu;
 
@@ -146,12 +148,31 @@ impl CPU
         return 12;
     }
 
+    // LD [DE], A | 1  8
+    fn ldDeAddressA(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getDe();
+        bus.write(address, self.registers.a);
+
+        return 8;
+    }
+
+    // INC DE | 1  8
+    fn incDe(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.registers.getDe();
+        let incdVal = val.wrapping_add(1);
+        self.registers.setDe(incdVal);
+
+        return 8;
+    }
+
     fn execute(&mut self, opcode: u8, bus: &mut Bus)
     {
-        let clockCycle = self.instructions[opcode as usize](self, bus);
+        let _clockCycle = self.instructions[opcode as usize](self, bus);
     }
     
-    // 1
+    // NOP | 1  4
     pub fn nop(&mut self, _bus: &mut Bus) -> u8
     {
         return 1;
