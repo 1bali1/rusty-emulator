@@ -24,6 +24,7 @@ impl CPU
         cpu.instructions[0x04] = CPU::incB;
         cpu.instructions[0x05] = CPU::decB;
         cpu.instructions[0x06] = CPU::ldB;
+        cpu.instructions[0x07] = CPU::rlca;
 
         cpu.instructions[0x11] = CPU::ldDe;
         cpu.instructions[0x12] = CPU::ldDeAddressA;
@@ -137,6 +138,22 @@ impl CPU
         self.registers.b = val;
 
         return 8;
+    }
+
+    // RLCA | 1  4 | 0 0 0 C
+    fn rlca(&mut self, _bus: &mut Bus) -> u8
+    {
+        let a =  self.registers.a;
+        let byte = (a & 0x80) >> 7;
+
+        self.registers.a = (a << 1) | byte;
+        
+        self.registers.setFlag(Registers::MASK_ZERO_Z, false);
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, false);
+        self.registers.setFlag(Registers::MASK_CARRY_C, byte == 1);
+
+        return 4;
     }
 
     // LD DE, n16 | 3  12
