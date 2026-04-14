@@ -29,6 +29,8 @@ impl CPU
         cpu.instructions[0x11] = CPU::ldDe;
         cpu.instructions[0x12] = CPU::ldDeAddressA;
         cpu.instructions[0x13] = CPU::incDe;
+        cpu.instructions[0x14] = CPU::incD;
+        cpu.instructions[0x15] = CPU::decD;
 
         return cpu;
 
@@ -182,6 +184,24 @@ impl CPU
         self.registers.setDe(incdVal);
 
         return 8;
+    }
+
+    // INC D | 1  4 | Z 0 H -
+    fn incD(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.incU8(self.registers.d);
+        self.registers.d = val;
+
+        return 4;
+    }
+
+    // DEC D | 1  4 | Z 1 H -
+    fn decD(&mut self, bus: &mut Bus) -> u8
+    {
+        let val = self.decU8(self.registers.d);
+        self.registers.d = val;
+
+        return 4;
     }
 
     fn execute(&mut self, opcode: u8, bus: &mut Bus)
