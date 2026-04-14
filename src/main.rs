@@ -9,13 +9,12 @@ mod registers;
 use bus::Bus;
 use cpu::CPU;
 
-fn main()
+fn main() 
 {
     let mut bus = Bus::new();
     let mut cpu = CPU::new();
 
-    for _ in 0..13
-    {
+    for _ in 0..20 {
         cpu.step(&mut bus);
     }
 }
