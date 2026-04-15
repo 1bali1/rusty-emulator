@@ -35,7 +35,8 @@ impl CPU
         cpu.instructions[0x14] = CPU::incD;
         cpu.instructions[0x15] = CPU::decD;
         cpu.instructions[0x16] = CPU::ldD;
-
+        cpu.instructions[0x1c] = CPU::incE;
+        cpu.instructions[0x1d] = CPU::decE;
         
         cpu.instructions[0x26] = CPU::ldH;
 
@@ -246,6 +247,24 @@ impl CPU
         self.registers.d = val;
 
         return 8;
+    }
+
+    // INC E | 1  4 | Z 0 H -
+    fn incE(&mut self, bus: &mut Bus) -> u8
+    {
+        let val = self.incU8(self.registers.e);
+        self.registers.e = val;
+
+        return 4;
+    }
+
+    // DEC E | 1  4 | Z 1 H -
+    fn decE(&mut self, bus: &mut Bus) -> u8
+    {
+        let val = self.decU8(self.registers.e);
+        self.registers.e = val;
+
+        return 4;
     }
 
     // LD H, n8 | 2  8 | - - - -
