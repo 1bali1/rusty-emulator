@@ -25,6 +25,8 @@ impl CPU
         cpu.instructions[0x05] = CPU::decB;
         cpu.instructions[0x06] = CPU::ldB;
         cpu.instructions[0x07] = CPU::rlca;
+        cpu.instructions[0x0c] = CPU::incC;
+        cpu.instructions[0x0d] = CPU::decC;
 
         cpu.instructions[0x11] = CPU::ldDe;
         cpu.instructions[0x12] = CPU::ldDeAddressA;
@@ -159,6 +161,24 @@ impl CPU
         self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
         self.registers.setFlag(Registers::MASK_HALF_CARRY_H, false);
         self.registers.setFlag(Registers::MASK_CARRY_C, byte == 1);
+
+        return 4;
+    }
+
+    // INC C | 1  4 | Z 0 H -
+    fn incC(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.incU8(self.registers.c);
+        self.registers.c = val;
+
+        return 4;
+    }
+
+    // DEC C | 1  4 | Z 1 H -
+    fn decC(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.decU8(self.registers.c);
+        self.registers.c = val;
 
         return 4;
     }
