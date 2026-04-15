@@ -27,6 +27,7 @@ impl CPU
         cpu.instructions[0x07] = CPU::rlca;
         cpu.instructions[0x0c] = CPU::incC;
         cpu.instructions[0x0d] = CPU::decC;
+        cpu.instructions[0x0e] = CPU::ldC;
 
         cpu.instructions[0x11] = CPU::ldDe;
         cpu.instructions[0x12] = CPU::ldDeAddressA;
@@ -181,6 +182,15 @@ impl CPU
         self.registers.c = val;
 
         return 4;
+    }
+
+    // LD C, n8 | 2  8 - - - -
+    fn ldC(&mut self, bus: &mut Bus) -> u8
+    {
+        let val = self.fetch(bus);
+        self.registers.c = val;
+
+        return 8;
     }
 
     // LD DE, n16 | 3  12
