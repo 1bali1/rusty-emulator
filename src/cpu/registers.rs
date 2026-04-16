@@ -62,4 +62,17 @@ impl Registers
         self.d = (value >> 8) as u8;
         self.e = (value & 0xff) as u8;
     }
+
+    pub fn getHl(&mut self) -> u16
+    {
+        return ((self.h as u16) << 8) | (self.l as u16);
+    }
+
+    pub fn setHl(&mut self, value: u16)
+    {
+        // 0000 0000 0000 0000
+        // 0000 0000 1111 1111
+        self.h = (value >> 8) as u8;
+        self.l = (value & 0xff) as u8;
+    }
 }

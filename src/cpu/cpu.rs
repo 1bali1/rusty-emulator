@@ -26,6 +26,7 @@ impl CPU
         cpu.instructions[0x06] = CPU::ldB;
         cpu.instructions[0x07] = CPU::rlca;
         cpu.instructions[0x08] = CPU::ldAddr16Sp;
+        cpu.instructions[0x09] = CPU::addHlBc;
         cpu.instructions[0x0c] = CPU::incC;
         cpu.instructions[0x0d] = CPU::decC;
         cpu.instructions[0x0e] = CPU::ldC;
@@ -180,11 +181,30 @@ impl CPU
 
         let address = (highAddr << 8) | lowAddr;
 
-
         bus.write(address, low);
         bus.write(address.wrapping_add(1 ), high);
 
         return 20;
+    }
+
+    // ADD HL, BC | 1  8 | - 0 H C
+    fn addHlBc(&mut self, _bus: &mut Bus) -> u8
+    {
+        let hl = self.registers.getHl();
+        let bc = self.registers.getBc();
+        let val = hl.wrapping_add(bc);
+
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
+
+        let halfCarried = (hl & 0x0fff) + (bc & 0x0fff) > 0x0fff;
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, halfCarried);
+
+        let carried = (hl as u32) + (bc as u32) > 0xffff;
+        self.registers.setFlag(Registers::MASK_CARRY_C, carried);
+
+        self.registers.setHl(val);
+
+        return 8;
     }
 
     // INC C | 1  4 | Z 0 H -
