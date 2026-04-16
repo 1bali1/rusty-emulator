@@ -25,6 +25,7 @@ impl CPU
         cpu.instructions[0x05] = CPU::decB;
         cpu.instructions[0x06] = CPU::ldB;
         cpu.instructions[0x07] = CPU::rlca;
+        cpu.instructions[0x08] = CPU::ldAddr16Sp;
         cpu.instructions[0x0c] = CPU::incC;
         cpu.instructions[0x0d] = CPU::decC;
         cpu.instructions[0x0e] = CPU::ldC;
@@ -166,6 +167,24 @@ impl CPU
         self.registers.setFlag(Registers::MASK_CARRY_C, byte == 1);
 
         return 4;
+    }
+
+    // LD [a16], SP | 3  20 | - - - -
+    fn ldAddr16Sp(&mut self, bus: &mut Bus) -> u8
+    {
+        let low = (self.registers.sp & 0xff) as u8;
+        let high = ((self.registers.sp >> 8) & 0xff) as u8;
+
+        let lowAddr = self.fetch(bus) as u16;
+        let highAddr = self.fetch(bus) as u16;
+
+        let address = (highAddr << 8) | lowAddr;
+
+
+        bus.write(address, low);
+        bus.write(address.wrapping_add(1 ), high);
+
+        return 20;
     }
 
     // INC C | 1  4 | Z 0 H -
