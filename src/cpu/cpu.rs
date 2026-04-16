@@ -32,6 +32,7 @@ impl CPU
         cpu.instructions[0x0c] = CPU::incC;
         cpu.instructions[0x0d] = CPU::decC;
         cpu.instructions[0x0e] = CPU::ldC;
+        cpu.instructions[0x0f] = CPU::rrca;
 
         cpu.instructions[0x11] = CPU::ldDe;
         cpu.instructions[0x12] = CPU::ldDeAddressA;
@@ -254,6 +255,24 @@ impl CPU
         self.registers.c = val;
 
         return 8;
+    }
+
+    // RRCA | 1  4 | 0 0 0 C
+    fn rrca(&mut self, bus: &mut Bus) -> u8
+    {
+        let acc = self.registers.a;
+        let bit = acc & 0x01;
+
+        let rotated = (acc >> 1) | (bit << 7);
+
+        self.registers.a = rotated;
+
+        self.registers.setFlag(Registers::MASK_ZERO_Z, false);
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, false);
+        self.registers.setFlag(Registers::MASK_CARRY_C, false);
+
+        return 4;
     }
 
     // LD DE, n16 | 3  12
