@@ -27,6 +27,8 @@ impl CPU
         cpu.instructions[0x07] = CPU::rlca;
         cpu.instructions[0x08] = CPU::ldAddr16Sp;
         cpu.instructions[0x09] = CPU::addHlBc;
+        cpu.instructions[0x0a] = CPU::ldAAddressBc;
+        cpu.instructions[0x0b] = CPU::decBc;
         cpu.instructions[0x0c] = CPU::incC;
         cpu.instructions[0x0d] = CPU::decC;
         cpu.instructions[0x0e] = CPU::ldC;
@@ -203,6 +205,26 @@ impl CPU
         self.registers.setFlag(Registers::MASK_CARRY_C, carried);
 
         self.registers.setHl(val);
+
+        return 8;
+    }
+
+    // LD A, [BC] | 1  8 | - - - -
+    fn ldAAddressBc(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getBc();
+        let val = bus.read(address);
+                
+        self.registers.a = val;
+
+        return 8;
+    }
+    
+    // DEC BC | 1  8 | - - - -
+    fn decBc(&mut self, _bus: &mut Bus) -> u8
+    {
+        let decdBc = self.registers.getBc().wrapping_sub(1);
+        self.registers.setBc(decdBc);
 
         return 8;
     }
