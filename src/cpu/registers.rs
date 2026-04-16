@@ -11,10 +11,10 @@ pub struct Registers
 
 impl Registers
 {
-    pub const MASK_ZERO_Z: u8 = 0x80;
-    pub const MASK_SUBTRACT_N: u8 = 0x40;
-    pub const MASK_HALF_CARRY_H: u8 = 0x20;
-    pub const MASK_CARRY_C: u8 = 0x10;
+    pub const MASK_ZERO_Z: u8 = 0x80; // 1000 0000
+    pub const MASK_SUBTRACT_N: u8 = 0x40; // 0100 0000
+    pub const MASK_HALF_CARRY_H: u8 = 0x20; // 0010 0000
+    pub const MASK_CARRY_C: u8 = 0x10; // 0001 0000
 
 
     pub fn new() -> Self
@@ -27,6 +27,13 @@ impl Registers
             pc: 0x0100,
             sp: 0xfffe
         }
+    }
+
+    pub fn getFlag(&mut self, mask: u8) -> bool 
+    {
+        let val = (self.f & mask) != 1;
+
+        return val;
     }
 
     pub fn setFlag(&mut self, mask: u8, value: bool)

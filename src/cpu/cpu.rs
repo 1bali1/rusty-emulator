@@ -40,6 +40,7 @@ impl CPU
         cpu.instructions[0x14] = CPU::incD;
         cpu.instructions[0x15] = CPU::decD;
         cpu.instructions[0x16] = CPU::ldD;
+        cpu.instructions[0x17] = CPU::rla;
         cpu.instructions[0x1c] = CPU::incE;
         cpu.instructions[0x1d] = CPU::decE;
         cpu.instructions[0x1e] = CPU::ldE;
@@ -160,10 +161,10 @@ impl CPU
     // RLCA | 1  4 | 0 0 0 C
     fn rlca(&mut self, _bus: &mut Bus) -> u8
     {
-        let a =  self.registers.a;
-        let byte = (a & 0x80) >> 7;
+        let acc =  self.registers.a;
+        let byte = (acc & 0x80) >> 7;
 
-        self.registers.a = (a << 1) | byte;
+        self.registers.a = (acc << 1) | byte;
         
         self.registers.setFlag(Registers::MASK_ZERO_Z, false);
         self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
@@ -258,19 +259,19 @@ impl CPU
     }
 
     // RRCA | 1  4 | 0 0 0 C
-    fn rrca(&mut self, bus: &mut Bus) -> u8
+    fn rrca(&mut self, _bus: &mut Bus) -> u8
     {
         let acc = self.registers.a;
-        let bit = acc & 0x01;
+        let byte = acc & 0x01;
 
-        let rotated = (acc >> 1) | (bit << 7);
+        let rotated = (acc >> 1) | (byte << 7);
 
         self.registers.a = rotated;
 
         self.registers.setFlag(Registers::MASK_ZERO_Z, false);
         self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
         self.registers.setFlag(Registers::MASK_HALF_CARRY_H, false);
-        self.registers.setFlag(Registers::MASK_CARRY_C, false);
+        self.registers.setFlag(Registers::MASK_CARRY_C, byte == 1);
 
         return 4;
     }
@@ -328,6 +329,23 @@ impl CPU
         self.registers.d = val;
 
         return 8;
+    }
+
+    // RLA | 1  4 | 0 0 0 C
+    fn rla(&mut self, _bus: &mut Bus) -> u8
+    {
+        let acc = self.registers.a;
+        let oldCarry = self.registers.getFlag(Registers::MASK_CARRY_C) as u8;
+        let newCarry = (acc & 0x80) != 0;
+
+        self.registers.a = (acc << 1) | oldCarry;
+
+        self.registers.setFlag(Registers::MASK_ZERO_Z, false);
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, false);
+        self.registers.setFlag(Registers::MASK_CARRY_C, newCarry);
+
+        return 4;
     }
 
     // INC E | 1  4 | Z 0 H -
