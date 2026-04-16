@@ -41,6 +41,7 @@ impl CPU
         cpu.instructions[0x15] = CPU::decD;
         cpu.instructions[0x16] = CPU::ldD;
         cpu.instructions[0x17] = CPU::rla;
+        cpu.instructions[0x18] = CPU::jrE8;
         cpu.instructions[0x1c] = CPU::incE;
         cpu.instructions[0x1d] = CPU::decE;
         cpu.instructions[0x1e] = CPU::ldE;
@@ -346,6 +347,17 @@ impl CPU
         self.registers.setFlag(Registers::MASK_CARRY_C, newCarry);
 
         return 4;
+    }
+
+    // JR e8 | 2  12 | - - - -
+    fn jrE8(&mut self, bus: &mut Bus) -> u8
+    {
+        let offset = self.fetch(bus) as i8;
+        let val = self.registers.pc as i32;
+        
+        self.registers.pc = (val + (offset as i32)) as u16;
+ 
+        return 12;
     }
 
     // INC E | 1  4 | Z 0 H -

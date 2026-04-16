@@ -31,7 +31,7 @@ impl Registers
 
     pub fn getFlag(&mut self, mask: u8) -> bool 
     {
-        let val = (self.f & mask) != 1;
+        let val = (self.f & mask) != 0;
 
         return val;
     }
