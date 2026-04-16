@@ -42,6 +42,7 @@ impl CPU
         cpu.instructions[0x16] = CPU::ldD;
         cpu.instructions[0x17] = CPU::rla;
         cpu.instructions[0x18] = CPU::jrE8;
+        cpu.instructions[0x19] = CPU::addHlDe;
         cpu.instructions[0x1c] = CPU::incE;
         cpu.instructions[0x1d] = CPU::decE;
         cpu.instructions[0x1e] = CPU::ldE;
@@ -358,6 +359,26 @@ impl CPU
         self.registers.pc = (val + (offset as i32)) as u16;
  
         return 12;
+    }
+
+    // ADD HL, DE | 1  8 | - 0 H C
+    fn addHlDe(&mut self, _bus: &mut Bus) -> u8
+    {
+        let hl = self.registers.getHl();
+        let de = self.registers.getDe();
+        let val = hl.wrapping_add(de);
+
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
+
+        let halfCarried = (hl & 0x0fff) + (de & 0x0fff) > 0x0fff;
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, halfCarried);
+
+        let carried = (hl as u32) + (de as u32) > 0xffff;
+        self.registers.setFlag(Registers::MASK_CARRY_C, carried);
+
+        self.registers.setHl(val);
+
+        return 8;
     }
 
     // INC E | 1  4 | Z 0 H -
