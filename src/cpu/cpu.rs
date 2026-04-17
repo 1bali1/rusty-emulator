@@ -43,9 +43,12 @@ impl CPU
         cpu.instructions[0x17] = CPU::rla;
         cpu.instructions[0x18] = CPU::jrE8;
         cpu.instructions[0x19] = CPU::addHlDe;
+        cpu.instructions[0x1a] = CPU::ldAAddressDe;
+        cpu.instructions[0x1b] = CPU::decDe;
         cpu.instructions[0x1c] = CPU::incE;
         cpu.instructions[0x1d] = CPU::decE;
         cpu.instructions[0x1e] = CPU::ldE;
+        cpu.instructions[0x1f] = CPU::rra;
         
         cpu.instructions[0x26] = CPU::ldH;
 
@@ -381,6 +384,25 @@ impl CPU
         return 8;
     }
 
+    // LD A, [DE] | 1  8 | - - - -
+    fn ldAAddressDe(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getDe();
+        let val = bus.read(address);
+        self.registers.a = val;
+
+        return 8;
+    }
+
+    // DEC DE | 1  8 | - - - -
+    fn decDe(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.registers.getDe().wrapping_sub(1);
+        self.registers.setDe(val);
+
+        return 8;
+    }
+
     // INC E | 1  4 | Z 0 H -
     fn incE(&mut self, _bus: &mut Bus) -> u8
     {
@@ -406,6 +428,23 @@ impl CPU
         self.registers.e = val;
 
         return 8;
+    }
+
+    // RRA | 1  4 | 0 0 0 C
+    fn rra(&mut self, _bus: &mut Bus) -> u8
+    {
+        let acc = self.registers.a;
+        let oldCarry = self.registers.getFlag(Registers::MASK_CARRY_C) as u8;
+        let newCarry = (acc & 0x01) != 0;
+
+        self.registers.a = (acc >> 7) | (oldCarry << 7);
+
+        self.registers.setFlag(Registers::MASK_ZERO_Z, false);
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, false);
+        self.registers.setFlag(Registers::MASK_CARRY_C, newCarry);
+
+        return 4;
     }
 
     // LD H, n8 | 2  8 | - - - -
