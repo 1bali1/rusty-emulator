@@ -33,7 +33,8 @@ impl CPU
         cpu.instructions[0x0d] = CPU::decC;
         cpu.instructions[0x0e] = CPU::ldC;
         cpu.instructions[0x0f] = CPU::rrca;
-
+        
+        // 0x10
         cpu.instructions[0x11] = CPU::ldDe;
         cpu.instructions[0x12] = CPU::ldDeAddressA;
         cpu.instructions[0x13] = CPU::incDe;
@@ -51,6 +52,11 @@ impl CPU
         cpu.instructions[0x1f] = CPU::rra;
         
         cpu.instructions[0x20] = CPU::jrNz;
+        cpu.instructions[0x21] = CPU::ldHl;
+        cpu.instructions[0x22] = CPU::ldHlPlusAddressA;
+        cpu.instructions[0x23] = CPU::incHl;
+        cpu.instructions[0x24] = CPU::incH;
+        cpu.instructions[0x25] = CPU::decH;
         cpu.instructions[0x26] = CPU::ldH;
 
 
@@ -131,8 +137,8 @@ impl CPU
     fn incBc(&mut self, _bus: &mut Bus) -> u8
     {
         let val = self.registers.getBc();
-        let incdVal = val.wrapping_add(1);
-        self.registers.setBc(incdVal);
+
+        self.registers.setBc(val.wrapping_add(1));
 
         return 8;
     }
@@ -186,13 +192,10 @@ impl CPU
         let low = (self.registers.sp & 0xff) as u8;
         let high = ((self.registers.sp >> 8) & 0xff) as u8;
 
-        let lowAddr = self.fetch(bus) as u16;
-        let highAddr = self.fetch(bus) as u16;
-
-        let address = (highAddr << 8) | lowAddr;
+        let address = self.fetchU16(bus);
 
         bus.write(address, low);
-        bus.write(address.wrapping_add(1 ), high);
+        bus.write(address.wrapping_add(1), high);
 
         return 20;
     }
@@ -443,6 +446,55 @@ impl CPU
         self.registers.pc = self.registers.pc.wrapping_add_signed(offset as i16);
 
         return 12;
+    }
+
+    // LD HL, n16 | 3  12 | - - - -
+    fn ldHl(&mut self, bus: &mut Bus) -> u8
+    {
+        let val = self.fetchU16(bus);
+        self.registers.setHl(val);
+
+        return 12;
+    }
+
+    // LD [HL+], A | 1  8 | - - - -
+    fn ldHlPlusAddressA(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+
+        bus.write(address, self.registers.a);
+
+        self.registers.setHl(address.wrapping_add(1));
+
+        return 8;
+    }
+
+    // INC HL | 1  8 | - - - -
+    fn incHl(&mut self, _bus: &mut Bus) -> u8
+    {
+        let hl = self.registers.getHl();
+
+        self.registers.setHl(hl.wrapping_add(1));
+
+        return 8;
+    }
+
+    // INC H | 1  4 | Z 0 H -
+    fn incH(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.incU8(self.registers.h);
+        self.registers.h = val;
+
+        return 4;
+    }
+
+    // DEC H | 1  4 | Z 1 H -
+    fn decH(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.decU8(self.registers.h);
+        self.registers.h = val;
+
+        return 4;
     }
 
     // RRA | 1  4 | 0 0 0 C
