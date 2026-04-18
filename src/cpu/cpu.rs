@@ -64,7 +64,9 @@ impl CPU
         cpu.instructions[0x2a] = CPU::ldAAddressHlPlus;
         cpu.instructions[0x2b] = CPU::decHl;
         cpu.instructions[0x2c] = CPU::incL;
-        cpu.instructions[0x2b] = CPU::decL;
+        cpu.instructions[0x2d] = CPU::decL;
+        cpu.instructions[0x2e] = CPU::ldL;
+        cpu.instructions[0x2f] = CPU::cpl;
 
         return cpu;
 
@@ -648,6 +650,26 @@ impl CPU
     {
         let val = self.decU8(self.registers.l);
         self.registers.l = val;
+
+        return 4;
+    }
+
+    // LD L, n8 | 2  8 | - - - -
+    fn ldL(&mut self, bus: &mut Bus) -> u8
+    {
+        let val = self.fetch(bus);
+        self.registers.l = val;
+
+        return 8;
+    }
+
+    // CPL | 1  4 | - 1 1 -
+    fn cpl(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.a = !self.registers.a;
+
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, true);
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, true);
 
         return 4;
     }
