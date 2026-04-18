@@ -62,6 +62,9 @@ impl CPU
         cpu.instructions[0x28] = CPU::jrZ;
         cpu.instructions[0x29] = CPU::addHlHl;
         cpu.instructions[0x2a] = CPU::ldAAddressHlPlus;
+        cpu.instructions[0x2b] = CPU::decHl;
+        cpu.instructions[0x2c] = CPU::incL;
+        cpu.instructions[0x2b] = CPU::decL;
 
         return cpu;
 
@@ -618,6 +621,35 @@ impl CPU
         self.registers.setHl(hl.wrapping_add(1));
 
         return 8;
+    }
+
+    // DEC HL | 1  8 | - - - -
+    fn decHl(&mut self, _bus: &mut Bus) -> u8
+    {
+        let hl = self.registers.getHl();
+        let val = hl.wrapping_sub(hl);
+
+        self.registers.setHl(val);
+
+        return 8;
+    }
+
+    // INC L | 1  4 | Z 0 H -
+    fn incL(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.incU8(self.registers.l);
+        self.registers.l = val;
+
+        return 4;
+    }
+
+    // DEC L | 1  4 | Z 1 H -
+    fn decL(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.decU8(self.registers.l);
+        self.registers.l = val;
+
+        return 4;
     }
 
     fn execute(&mut self, opcode: u8, bus: &mut Bus)
