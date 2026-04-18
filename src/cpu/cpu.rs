@@ -1,5 +1,5 @@
 use crate::bus::Bus;
-use crate::registers::{self, Registers};
+use crate::registers::Registers;
 
 type InstructionFn = fn(&mut CPU, &mut Bus) -> u8;
 
@@ -59,7 +59,9 @@ impl CPU
         cpu.instructions[0x25] = CPU::decH;
         cpu.instructions[0x26] = CPU::ldH;
         cpu.instructions[0x27] = CPU::daa;
-
+        cpu.instructions[0x28] = CPU::jrZ;
+        cpu.instructions[0x29] = CPU::addHlHl;
+        cpu.instructions[0x2a] = CPU::ldAAddressHlPlus;
 
         return cpu;
 
@@ -210,7 +212,7 @@ impl CPU
 
         self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
 
-        let halfCarried = (hl & 0x0fff) + (bc & 0x0fff) > 0x0fff;
+        let halfCarried = (hl & 0xfff) + (bc & 0xfff) > 0xfff;
         self.registers.setFlag(Registers::MASK_HALF_CARRY_H, halfCarried);
 
         let carried = (hl as u32) + (bc as u32) > 0xffff;
@@ -568,6 +570,54 @@ impl CPU
         self.registers.setFlag(Registers::MASK_CARRY_C, cFlag);
 
         return 4;
+    }
+
+    // JR Z, e8 | 2  12/8 | - - - -
+    fn jrZ(&mut self, bus: &mut Bus) -> u8
+    {
+        let offset = self.fetch(bus) as i8;
+        let flag = self.registers.getFlag(Registers::MASK_ZERO_Z);
+
+        if !flag
+        {
+            return 8;
+        }
+
+        self.registers.pc = self.registers.pc.wrapping_add_signed(offset as i16);
+        
+        return 12;
+    }
+
+    // ADD HL, HL | 1  8 | - 0 H C
+    fn addHlHl(&mut self, _bus: &mut Bus) -> u8
+    {
+        let hl = self.registers.getHl();
+        let sum = (hl as u32) + (hl as u32);
+        let val = sum as u16;
+
+        self.registers.setHl(val);
+
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
+        
+        let halfCarried = (hl & 0xfff) + (hl & 0xfff) > 0xfff;
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, halfCarried);
+
+        let carried = sum > 0xffff;
+        self.registers.setFlag(Registers::MASK_CARRY_C, carried);
+
+        return 8;
+    }
+
+    // LD A, [HL+] | 1  8 | - - - -
+    fn ldAAddressHlPlus(&mut self, bus: &mut Bus) -> u8
+    {
+        let hl = self.registers.getHl();
+        let val = bus.read(hl);
+
+        self.registers.a = val;
+        self.registers.setHl(hl.wrapping_add(1));
+
+        return 8;
     }
 
     fn execute(&mut self, opcode: u8, bus: &mut Bus)
