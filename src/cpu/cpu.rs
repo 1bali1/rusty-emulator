@@ -1,5 +1,5 @@
 use crate::bus::Bus;
-use crate::registers::Registers;
+use crate::registers::{self, Registers};
 
 type InstructionFn = fn(&mut CPU, &mut Bus) -> u8;
 
@@ -58,6 +58,7 @@ impl CPU
         cpu.instructions[0x24] = CPU::incH;
         cpu.instructions[0x25] = CPU::decH;
         cpu.instructions[0x26] = CPU::ldH;
+        cpu.instructions[0x27] = CPU::daa;
 
 
         return cpu;
@@ -173,10 +174,10 @@ impl CPU
     // RLCA | 1  4 | 0 0 0 C
     fn rlca(&mut self, _bus: &mut Bus) -> u8
     {
-        let acc =  self.registers.a;
-        let byte = (acc & 0x80) >> 7;
+        let alu =  self.registers.a;
+        let byte = (alu & 0x80) >> 7;
 
-        self.registers.a = (acc << 1) | byte;
+        self.registers.a = (alu << 1) | byte;
         
         self.registers.setFlag(Registers::MASK_ZERO_Z, false);
         self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
@@ -270,10 +271,10 @@ impl CPU
     // RRCA | 1  4 | 0 0 0 C
     fn rrca(&mut self, _bus: &mut Bus) -> u8
     {
-        let acc = self.registers.a;
-        let byte = acc & 0x01;
+        let alu = self.registers.a;
+        let byte = alu & 0x01;
 
-        let rotated = (acc >> 1) | (byte << 7);
+        let rotated = (alu >> 1) | (byte << 7);
 
         self.registers.a = rotated;
 
@@ -343,11 +344,11 @@ impl CPU
     // RLA | 1  4 | 0 0 0 C
     fn rla(&mut self, _bus: &mut Bus) -> u8
     {
-        let acc = self.registers.a;
+        let alu = self.registers.a;
         let oldCarry = self.registers.getFlag(Registers::MASK_CARRY_C) as u8;
-        let newCarry = (acc & 0x80) != 0;
+        let newCarry = (alu & 0x80) != 0;
 
-        self.registers.a = (acc << 1) | oldCarry;
+        self.registers.a = (alu << 1) | oldCarry;
 
         self.registers.setFlag(Registers::MASK_ZERO_Z, false);
         self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
@@ -500,11 +501,11 @@ impl CPU
     // RRA | 1  4 | 0 0 0 C
     fn rra(&mut self, _bus: &mut Bus) -> u8
     {
-        let acc = self.registers.a;
+        let alu = self.registers.a;
         let oldCarry = self.registers.getFlag(Registers::MASK_CARRY_C) as u8;
-        let newCarry = (acc & 0x01) != 0;
+        let newCarry = (alu & 0x01) != 0;
 
-        self.registers.a = (acc >> 7) | (oldCarry << 7);
+        self.registers.a = (alu >> 7) | (oldCarry << 7);
 
         self.registers.setFlag(Registers::MASK_ZERO_Z, false);
         self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
@@ -521,6 +522,52 @@ impl CPU
         self.registers.h = val;
 
         return 8;
+    }
+
+    // DAA | 1  4 | Z - 0 C
+    fn daa(&mut self, _bus: &mut Bus) -> u8
+    {
+        let mut alu = self.registers.a;
+        let nFlag = self.registers.getFlag(Registers::MASK_SUBTRACT_N);
+        let hFlag = self.registers.getFlag(Registers::MASK_HALF_CARRY_H);
+        let mut cFlag = self.registers.getFlag(Registers::MASK_CARRY_C);
+
+        let mut correction = 0;
+
+        if !nFlag
+        { 
+            if hFlag || (alu & 0xf) > 0x9
+            {
+                correction |= 0x06;
+            }
+            if cFlag || alu > 0x99
+            {
+                correction |= 0x60;
+                cFlag = true;
+            }
+
+            alu = alu.wrapping_add(correction);
+        }
+        else 
+        {
+            if hFlag
+            {
+                correction |= 0x06;
+            }
+            if cFlag
+            {
+                correction |= 0x60;
+            }
+            alu = alu.wrapping_sub(correction);
+        }
+
+        self.registers.a = alu;
+        
+        self.registers.setFlag(Registers::MASK_ZERO_Z, alu == 0);
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, false);
+        self.registers.setFlag(Registers::MASK_CARRY_C, cFlag);
+
+        return 4;
     }
 
     fn execute(&mut self, opcode: u8, bus: &mut Bus)
