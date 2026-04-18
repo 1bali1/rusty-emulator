@@ -50,6 +50,7 @@ impl CPU
         cpu.instructions[0x1e] = CPU::ldE;
         cpu.instructions[0x1f] = CPU::rra;
         
+        cpu.instructions[0x20] = CPU::jrNz;
         cpu.instructions[0x26] = CPU::ldH;
 
 
@@ -357,9 +358,7 @@ impl CPU
     fn jrE8(&mut self, bus: &mut Bus) -> u8
     {
         let offset = self.fetch(bus) as i8;
-        let val = self.registers.pc as i32;
-        
-        self.registers.pc = (val + (offset as i32)) as u16;
+        self.registers.pc = self.registers.pc.wrapping_add_signed(offset as i16);
  
         return 12;
     }
@@ -428,6 +427,22 @@ impl CPU
         self.registers.e = val;
 
         return 8;
+    }
+
+    // JR NZ, e8 | 2  12/8 | - - - -
+    fn jrNz(&mut self, bus: &mut Bus) -> u8
+    {
+        let flag = self.registers.getFlag(Registers::MASK_ZERO_Z);
+        let offset = self.fetch(bus) as i8;
+    
+        if flag
+        {
+            return 8;
+        }
+
+        self.registers.pc = self.registers.pc.wrapping_add_signed(offset as i16);
+
+        return 12;
     }
 
     // RRA | 1  4 | 0 0 0 C
