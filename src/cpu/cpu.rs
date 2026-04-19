@@ -172,6 +172,23 @@ impl CPU
         cpu.instructions[0x8e] = CPU::adcAAddressHl;
         cpu.instructions[0x8f] = CPU::adcAA;
 
+        cpu.instructions[0x90] = CPU::subAB;
+        cpu.instructions[0x91] = CPU::subAC;
+        cpu.instructions[0x92] = CPU::subAD;
+        cpu.instructions[0x93] = CPU::subAE;
+        cpu.instructions[0x94] = CPU::subAH;
+        cpu.instructions[0x95] = CPU::subAL;
+        cpu.instructions[0x96] = CPU::subAAddressHl;
+        cpu.instructions[0x97] = CPU::subAA;
+        cpu.instructions[0x98] = CPU::sbcAB;
+        cpu.instructions[0x99] = CPU::sbcAC;
+        cpu.instructions[0x9a] = CPU::sbcAD;
+        cpu.instructions[0x9b] = CPU::sbcAE;
+        cpu.instructions[0x9c] = CPU::sbcAH;
+        cpu.instructions[0x9d] = CPU::sbcAL;
+        cpu.instructions[0x9e] = CPU::sbcAAddressHl;
+        cpu.instructions[0x9f] = CPU::sbcAA;
+
         return cpu;
 
     }
@@ -258,6 +275,24 @@ impl CPU
         self.registers.setFlag(Registers::MASK_CARRY_C, carried);
 
         return sum as u16;
+    }
+
+    fn sub(&mut self, num1: u8, num2: u8, withCarry: bool) -> u8
+    {
+        let carry = if withCarry { self.registers.getFlag(Registers::MASK_CARRY_C) as u8 } else { 0 };
+
+        let sum = (num1).wrapping_sub(num2).wrapping_sub(carry);
+        println!("{}", sum);
+        self.registers.setFlag(Registers::MASK_ZERO_Z, sum == 0);
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, true);
+
+        let halfCarried = (num1 & 0xf) < (num2 & 0xf) + carry;
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, halfCarried);
+
+        let carried = (num1 as u16) < (num2 as u16) + (carry as u16);
+        self.registers.setFlag(Registers::MASK_CARRY_C, carried);
+
+        return sum;
     }
 
     // LD BC, n16 | 3  12
@@ -1627,6 +1662,154 @@ impl CPU
     fn adcAA(&mut self, _bus: &mut Bus) -> u8
     {
         let val = self.add(self.registers.a, self.registers.a, true);
+        self.registers.a = val;
+
+        return 4;
+    }
+ 
+    // SUB A, B | 1  4 | Z 1 H C
+    fn subAB(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.sub(self.registers.a, self.registers.b, false);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // SUB A, C | 1  4 | Z 1 H C
+    fn subAC(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.sub(self.registers.a, self.registers.c, false);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // SUB A, D | 1  4 | Z 1 H C
+    fn subAD(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.sub(self.registers.a, self.registers.d, false);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // SUB A, E | 1  4 | Z 1 H C
+    fn subAE(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.sub(self.registers.a, self.registers.e, false);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // SUB A, H| 1  4 | Z 1 H C
+    fn subAH(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.sub(self.registers.a, self.registers.h, false);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // SUB A, L | 1  4 | Z 1 H C
+    fn subAL(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.sub(self.registers.a, self.registers.l, false);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // SUB A, [HL] | 1  8 | Z 1 H C
+    fn subAAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        let x = bus.read(address);
+        let val = self.sub(self.registers.a, x, false);
+        self.registers.a = val;
+
+        return 8;
+    }
+
+    // SUB A, A | 1  4 | 1 1 0 0
+    fn subAA(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.sub(self.registers.a, self.registers.a, false);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // SBC A, B | 1  4 | Z 1 H C
+    fn sbcAB(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.sub(self.registers.a, self.registers.b, true);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // SBC A, C | 1  4 | Z 1 H C
+    fn sbcAC(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.sub(self.registers.a, self.registers.c, true);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // SBC A, D | 1  4 | Z 1 H C
+    fn sbcAD(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.sub(self.registers.a, self.registers.d, true);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // SBC A, E | 1  4 | Z 1 H C
+    fn sbcAE(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.sub(self.registers.a, self.registers.e, true);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // SBC A, H| 1  4 | Z 1 H C
+    fn sbcAH(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.sub(self.registers.a, self.registers.h, true);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // SBC A, L | 1  4 | Z 1 H C
+    fn sbcAL(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.sub(self.registers.a, self.registers.l, true);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // SBC A, [HL] | 1  8 | Z 1 H C
+    fn sbcAAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        let x = bus.read(address);
+        let val = self.sub(self.registers.a, x, true);
+        self.registers.a = val;
+
+        return 8;
+    }
+
+    // SBC A, A | 1  4 | 1 1 0 0
+    fn sbcAA(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.sub(self.registers.a, self.registers.a, true);
         self.registers.a = val;
 
         return 4;
