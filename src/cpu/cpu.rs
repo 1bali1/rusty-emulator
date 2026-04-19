@@ -1,3 +1,5 @@
+use std::net::SocketAddrV6;
+
 use crate::bus::Bus;
 use crate::registers::Registers;
 
@@ -100,7 +102,24 @@ impl CPU
         cpu.instructions[0x4c] = CPU::ldCH;
         cpu.instructions[0x4d] = CPU::ldCL;
         cpu.instructions[0x4e] = CPU::ldCAddressHl;
-        cpu.instructions[0x4f] = CPU::ldCA; 
+        cpu.instructions[0x4f] = CPU::ldCA;
+
+        cpu.instructions[0x50] = CPU::ldDB;
+        cpu.instructions[0x51] = CPU::ldDC;
+        cpu.instructions[0x52] = CPU::ldDD;
+        cpu.instructions[0x53] = CPU::ldDE;
+        cpu.instructions[0x54] = CPU::ldDH;
+        cpu.instructions[0x55] = CPU::ldDL;
+        cpu.instructions[0x56] = CPU::ldDAddressHl;
+        cpu.instructions[0x57] = CPU::ldDA;
+        cpu.instructions[0x58] = CPU::ldEB;
+        cpu.instructions[0x59] = CPU::ldEC;
+        cpu.instructions[0x5a] = CPU::ldED;
+        cpu.instructions[0x5b] = CPU::ldEE;
+        cpu.instructions[0x5c] = CPU::ldEH;
+        cpu.instructions[0x5d] = CPU::ldEL;
+        cpu.instructions[0x5e] = CPU::ldEAddressHl;
+        cpu.instructions[0x5f] = CPU::ldEA;
 
         return cpu;
 
@@ -1010,6 +1029,128 @@ impl CPU
         return 4;
     }
 
+    // LD D, B | 1  4 | - - - -
+    fn ldDB(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.d = self.registers.b;
+
+        return 4;
+    }
+
+    // LD D, C | 1  4 | - - - -
+    fn ldDC(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.d = self.registers.c;
+
+        return 4;
+    }
+
+    // LD D, D | 1  4 | - - - -
+    fn ldDD(&mut self, _bus: &mut Bus) -> u8
+    {
+        return 4;
+    }
+
+    // LD D, E | 1  4 | - - - -
+    fn ldDE(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.d = self.registers.e;
+
+        return 4;
+    }
+
+    // LD D, H | 1  4 | - - - -
+    fn ldDH(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.d = self.registers.h;
+
+        return 4;
+    }
+
+    // LD D, L | 1  4 | - - - -
+    fn ldDL(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.d = self.registers.l;
+
+        return 4;
+    }
+
+    // LD D, [HL] | 1  8 | - - - -
+    fn ldDAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        let val = bus.read(address);
+        self.registers.d = val;
+
+        return 8;
+    }
+
+    // LD D, A | 1  4 | - - - -
+    fn ldDA(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.d = self.registers.a;
+
+        return 4;
+    }
+
+    // LD E, B | 1  4 | - - - -
+    fn ldEB(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.e = self.registers.b;
+        return 4;
+    }
+
+    // LD E, C | 1  4 | - - - -
+    fn ldEC(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.e = self.registers.c;
+        return 4;
+    }
+
+    // LD E, D | 1  4 | - - - -
+    fn ldED(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.e = self.registers.d;
+        return 4;
+    }
+
+    // LD E, E | 1  4 | - - - -
+    fn ldEE(&mut self, _bus: &mut Bus) -> u8
+    {
+        return 4;
+    }
+
+    // LD E, H | 1  4 | - - - -
+    fn ldEH(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.e = self.registers.h;
+        return 4;
+    }
+
+    // LD E, L | 1  4 | - - - -
+    fn ldEL(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.e = self.registers.l;
+        return 4;
+    }
+
+    // LD E, [HL] | 1  8 | - - - -
+    fn ldEAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        let val = bus.read(address);
+        self.registers.e = val;
+
+        return 8;
+    }
+
+    // LD E, A | 1  4 | - - - -
+    fn ldEA(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.e = self.registers.a;
+
+        return 4;
+    }
 
     fn execute(&mut self, opcode: u8, bus: &mut Bus)
     {
