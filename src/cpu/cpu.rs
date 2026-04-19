@@ -1,5 +1,5 @@
 use crate::bus::Bus;
-use crate::registers::{self, Registers};
+use crate::registers::Registers;
 
 type InstructionFn = fn(&mut CPU, &mut Bus) -> u8;
 
@@ -156,6 +156,21 @@ impl CPU
         cpu.instructions[0x7f] = CPU::ldAA;
 
         cpu.instructions[0x80] = CPU::addAB;
+        cpu.instructions[0x81] = CPU::addAC;
+        cpu.instructions[0x82] = CPU::addAD;
+        cpu.instructions[0x83] = CPU::addAE;
+        cpu.instructions[0x84] = CPU::addAH;
+        cpu.instructions[0x85] = CPU::addAL;
+        cpu.instructions[0x86] = CPU::addAAddressHl;
+        cpu.instructions[0x87] = CPU::addAA;
+        cpu.instructions[0x88] = CPU::adcAB;
+        cpu.instructions[0x89] = CPU::adcAC;
+        cpu.instructions[0x8a] = CPU::adcAD;
+        cpu.instructions[0x8b] = CPU::adcAE;
+        cpu.instructions[0x8c] = CPU::adcAH;
+        cpu.instructions[0x8d] = CPU::adcAL;
+        cpu.instructions[0x8e] = CPU::adcAAddressHl;
+        cpu.instructions[0x8f] = CPU::adcAA;
 
         return cpu;
 
@@ -212,14 +227,16 @@ impl CPU
         return decdVal;
     }
 
-    fn add(&mut self, num1: u8, num2: u8) -> u8
+    fn add(&mut self, num1: u8, num2: u8, withCarry: bool) -> u8
     {
-        let sum = (num1 as u16).wrapping_add(num2 as u16);
+        let carry = if withCarry { self.registers.getFlag(Registers::MASK_CARRY_C) as u8 } else { 0 };
+
+        let sum = (num1 as u16).wrapping_add(num2 as u16).wrapping_add(carry as u16);
 
         self.registers.setFlag(Registers::MASK_ZERO_Z, (sum as u8) == 0);
         self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
 
-        let halfCarried = (num1 & 0xf) + (num2 & 0xf) > 0xf;
+        let halfCarried = (num1 & 0xf) + (num2 & 0xf) + carry > 0xf;
         self.registers.setFlag(Registers::MASK_HALF_CARRY_H, halfCarried);
 
         let carried = sum > 0xff;
@@ -1470,7 +1487,146 @@ impl CPU
     // ADD A, B | 1  4 | Z 0 H C 
     fn addAB(&mut self, _bus: &mut Bus) -> u8
     {
-        let val = self.add(self.registers.a, self.registers.b);
+        let val = self.add(self.registers.a, self.registers.b, false);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // ADD A, C | 1  4 | Z 0 H C 
+    fn addAC(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.add(self.registers.a, self.registers.c, false);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // ADD A, D | 1  4 | Z 0 H C 
+    fn addAD(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.add(self.registers.a, self.registers.d, false);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // ADD A, E | 1  4 | Z 0 H C 
+    fn addAE(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.add(self.registers.a, self.registers.e, false);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // ADD A, H | 1  4 | Z 0 H C 
+    fn addAH(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.add(self.registers.a, self.registers.h, false);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // ADD A, L | 1  4 | Z 0 H C 
+    fn addAL(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.add(self.registers.a, self.registers.l, false);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // ADD A, [HL] | 1  8 | Z 0 H C
+    fn addAAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        let x = bus.read(address);
+        let val = self.add(self.registers.a, x, false);
+        self.registers.a = val;
+
+        return 8;
+    }
+
+    // ADD A, A | 1  4 | Z 0 H C 
+    fn addAA(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.add(self.registers.a, self.registers.a, false);
+        self.registers.a = val;
+
+        return 4;
+    }
+    
+    // ADC A, B | 1  4 | Z 0 H C
+    fn adcAB(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.add(self.registers.a, self.registers.b, true);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // ADC A, C | 1  4 | Z 0 H C
+    fn adcAC(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.add(self.registers.a, self.registers.c, true);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // ADC A, D | 1  4 | Z 0 H C
+    fn adcAD(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.add(self.registers.a, self.registers.d, true);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // ADC A, E | 1  4 | Z 0 H C
+    fn adcAE(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.add(self.registers.a, self.registers.e, true);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // ADC A, H | 1  4 | Z 0 H C
+    fn adcAH(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.add(self.registers.a, self.registers.h, true);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // ADC A, L | 1  4 | Z 0 H C
+    fn adcAL(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.add(self.registers.a, self.registers.l, true);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // ADC A, [HL] | 1  8 | Z 0 H C
+    fn adcAAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        let x = bus.read(address);
+        let val = self.add(self.registers.a, x, true);
+        self.registers.a = val;
+
+        return 8;
+    }
+
+    // ADC A, A | 1  4 | Z 0 H C
+    fn adcAA(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.add(self.registers.a, self.registers.a, true);
         self.registers.a = val;
 
         return 4;
@@ -1480,7 +1636,7 @@ impl CPU
     {
         let _clockCycle = self.instructions[opcode as usize](self, bus);
     }
-    
+
     // NOP | 1  4
     pub fn nop(&mut self, _bus: &mut Bus) -> u8
     {
