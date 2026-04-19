@@ -1,5 +1,3 @@
-use std::net::SocketAddrV6;
-
 use crate::bus::Bus;
 use crate::registers::Registers;
 
@@ -8,6 +6,7 @@ type InstructionFn = fn(&mut CPU, &mut Bus) -> u8;
 pub struct CPU
 {
     pub registers: Registers,
+    pub isHalted: bool,
     instructions: [InstructionFn; 256]
 }
 
@@ -17,6 +16,7 @@ impl CPU
     {
         let mut cpu = CPU {
             registers: Registers::new(),
+            isHalted: false,
             instructions: [CPU::nop; 256]
         };
 
@@ -137,6 +137,23 @@ impl CPU
         cpu.instructions[0x6d] = CPU::ldLL;
         cpu.instructions[0x6e] = CPU::ldLAddressHl;
         cpu.instructions[0x6f] = CPU::ldLA;
+
+        cpu.instructions[0x70] = CPU::ldAddressHlB;
+        cpu.instructions[0x71] = CPU::ldAddressHlC;
+        cpu.instructions[0x72] = CPU::ldAddressHlD;
+        cpu.instructions[0x73] = CPU::ldAddressHlE;
+        cpu.instructions[0x74] = CPU::ldAddressHlH;
+        cpu.instructions[0x75] = CPU::ldAddressHlL;
+        cpu.instructions[0x76] = CPU::halt;
+        cpu.instructions[0x77] = CPU::ldAddressHlA;
+        cpu.instructions[0x78] = CPU::ldAB;
+        cpu.instructions[0x79] = CPU::ldAC;
+        cpu.instructions[0x7a] = CPU::ldAD;
+        cpu.instructions[0x7b] = CPU::ldAE;
+        cpu.instructions[0x7c] = CPU::ldAH;
+        cpu.instructions[0x7d] = CPU::ldAL;
+        cpu.instructions[0x7e] = CPU::ldAAddressHl;
+        cpu.instructions[0x7f] = CPU::ldAA;
 
         return cpu;
 
@@ -1294,6 +1311,141 @@ impl CPU
     {
         self.registers.l = self.registers.a;
         
+        return 4;
+    }
+
+    // LD [HL], B | 1  8 | - - - -
+    fn ldAddressHlB(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        bus.write(address, self.registers.b);
+
+        return 8;
+    }
+
+    // LD [HL], C | 1  8 | - - - -
+    fn ldAddressHlC(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        bus.write(address, self.registers.c);
+
+        return 8;
+    }
+
+    // LD [HL], D | 1  8 | - - - -
+    fn ldAddressHlD(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        bus.write(address, self.registers.d);
+
+        return 8;
+    }
+
+    // LD [HL], E | 1  8 | - - - -
+    fn ldAddressHlE(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        bus.write(address, self.registers.e);
+        
+        return 8;
+    }
+
+    // LD [HL], H | 1  8 | - - - -
+    fn ldAddressHlH(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        bus.write(address, self.registers.h);
+
+        return 8;
+    }
+
+    // LD [HL], L | 1  8 | - - - -
+    fn ldAddressHlL(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        bus.write(address, self.registers.l);
+
+        return 8;
+    }
+
+    // HALT | 1  4 | - - - -
+    fn halt(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.isHalted = true;
+
+        return 4;
+    }
+
+    // LD [HL], A | 1  8 | - - - -
+    fn ldAddressHlA(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        bus.write(address, self.registers.a);
+
+        return 8;
+    }
+
+    // LD A, B | 1  4 | - - - -
+    fn ldAB(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.a = self.registers.b;
+
+        return 4;
+    }
+
+    // LD A, C | 1  4 | - - - -
+    fn ldAC(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.a = self.registers.c;
+
+        return 4;
+    }
+
+    // LD A, D | 1  4 | - - - -
+    fn ldAD(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.a = self.registers.d;
+
+        return 4;
+    }
+
+    // LD A, E | 1  4 | - - - -
+    fn ldAE(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.a = self.registers.e;
+
+        return 4;
+    }
+
+    // LD A, H | 1  4 | - - - -
+    fn ldAH(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.a = self.registers.h;
+
+        return 4;
+    }
+
+    // LD A, L | 1  4 | - - - -
+    fn ldAL(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.a = self.registers.l;
+
+        return 4;
+    }
+
+    // LD A, [HL] | 1  8 | - - - -
+    fn ldAAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        let val = bus.read(address);
+        self.registers.a = val;
+
+        return 8;
+    }
+
+    // LD A, A | 1  4 | - - - -
+    fn ldAA(&mut self, _bus: &mut Bus) -> u8
+    {
         return 4;
     }
 
