@@ -1,3 +1,5 @@
+use core::panic;
+
 use crate::bus::Bus;
 use crate::registers::Registers;
 
@@ -7,6 +9,7 @@ pub struct CPU
 {
     pub registers: Registers,
     pub isHalted: bool,
+    pub imeFlag: bool,
     instructions: [InstructionFn; 256],
     prefixedInstructions: [InstructionFn; 256]
 }
@@ -18,6 +21,7 @@ impl CPU
         let mut cpu = CPU {
             registers: Registers::new(),
             isHalted: false,
+            imeFlag: false,
             instructions: [CPU::nop; 256],
             prefixedInstructions: [CPU::nop; 256]
         };
@@ -245,7 +249,7 @@ impl CPU
         cpu.instructions[0xd0] = CPU::retNc;
         cpu.instructions[0xd1] = CPU::popDe;
         cpu.instructions[0xd2] = CPU::jpNc;
-        cpu.instructions[0xd3] = CPU::nop;
+        cpu.instructions[0xd3] = CPU::notImplemented;
         cpu.instructions[0xd4] = CPU::callNc;
         cpu.instructions[0xd5] = CPU::pushDe;
         cpu.instructions[0xd6] = CPU::subA;
@@ -253,11 +257,45 @@ impl CPU
         cpu.instructions[0xd8] = CPU::retC;
         cpu.instructions[0xd9] = CPU::reti;
         cpu.instructions[0xda] = CPU::jpC;
-        cpu.instructions[0xdb] = CPU::nop;
+        cpu.instructions[0xdb] = CPU::notImplemented;
         cpu.instructions[0xdc] = CPU::callC;
-        cpu.instructions[0xdd] = CPU::nop;
+        cpu.instructions[0xdd] = CPU::notImplemented;
         cpu.instructions[0xde] = CPU::sbcA;
         cpu.instructions[0xdf] = CPU::rst18;
+
+        cpu.instructions[0xe0] = CPU::ldhAddressA;
+        cpu.instructions[0xe1] = CPU::popHl;
+        cpu.instructions[0xe2] = CPU::ldhAddressCA;
+        cpu.instructions[0xe3] = CPU::notImplemented;
+        cpu.instructions[0xe4] = CPU::notImplemented;
+        cpu.instructions[0xe5] = CPU::pushHl;
+        cpu.instructions[0xe6] = CPU::andA;
+        cpu.instructions[0xe7] = CPU::rst20;
+        cpu.instructions[0xe8] = CPU::addSp;
+        cpu.instructions[0xe9] = CPU::jpHl;
+        cpu.instructions[0xea] = CPU::ldAddressA;
+        cpu.instructions[0xeb] = CPU::notImplemented;
+        cpu.instructions[0xec] = CPU::notImplemented;
+        cpu.instructions[0xed] = CPU::notImplemented;
+        cpu.instructions[0xee] = CPU::xorA;
+        cpu.instructions[0xef] = CPU::rst28;
+
+        cpu.instructions[0xf0] = CPU::ldhAAddress;
+        cpu.instructions[0xf1] = CPU::popAf;
+        cpu.instructions[0xf2] = CPU::ldhAAddressC;
+        cpu.instructions[0xf3] = CPU::di;
+        cpu.instructions[0xf4] = CPU::notImplemented;
+        cpu.instructions[0xf5] = CPU::pushAf;
+        cpu.instructions[0xf6] = CPU::orA;
+        cpu.instructions[0xf7] = CPU::rst30;
+        cpu.instructions[0xf8] = CPU::ldHlSpPlusByte;
+        cpu.instructions[0xf9] = CPU::ldSpHl;
+        cpu.instructions[0xfa] = CPU::ldAAddress;
+        cpu.instructions[0xfb] = CPU::ei;
+        cpu.instructions[0xfc] = CPU::notImplemented;
+        cpu.instructions[0xfd] = CPU::notImplemented;
+        cpu.instructions[0xfe] = CPU::cpA;
+        cpu.instructions[0xff] = CPU::rst38;
 
         return cpu;
 
@@ -268,6 +306,7 @@ impl CPU
         // TODO: impl interrupts + ticks
         if self.isHalted
         {
+            panic!("Halt");
             return;
         }
 
@@ -314,7 +353,7 @@ impl CPU
         self.registers.setFlag(Registers::MASK_ZERO_Z, decdVal == 0);
         self.registers.setFlag(Registers::MASK_SUBTRACT_N, true);
 
-        let overflow = (value & 0x0f) == 0; // 0000 
+        let overflow = (value & 0x0F) == 0;
         self.registers.setFlag(Registers::MASK_HALF_CARRY_H, overflow);
 
         return decdVal;
@@ -344,7 +383,7 @@ impl CPU
 
         self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
         
-        let halfCarried = (num1 & 0xfff) + (num2 & 0xfff) > 0xfff;
+        let halfCarried = ((num1 as u32) & 0x0fff) + ((num2 as u32) & 0x0fff) > 0x0fff;
         self.registers.setFlag(Registers::MASK_HALF_CARRY_H, halfCarried);
 
         let carried = sum > 0xffff;
@@ -357,15 +396,15 @@ impl CPU
     {
         let carry = if withCarry { self.registers.getFlag(Registers::MASK_CARRY_C) as u8 } else { 0 };
 
-        let sum = (num1).wrapping_sub(num2).wrapping_sub(carry);
+        let sum = num1.wrapping_sub(num2).wrapping_sub(carry);
 
         self.registers.setFlag(Registers::MASK_ZERO_Z, sum == 0);
         self.registers.setFlag(Registers::MASK_SUBTRACT_N, true);
 
-        let halfCarried = (num1 & 0x0f) < (num2 & 0x0f).wrapping_add(carry);
+        let halfCarried = ((num1 as i32) & 0x0f) - ((num2 as i32) & 0x0f) - (carry as i32) < 0;
         self.registers.setFlag(Registers::MASK_HALF_CARRY_H, halfCarried);
 
-        let carried = (num1 as u16) < (num2 as u16).wrapping_add(carry as u16);
+        let carried = (num1 as i32) - (num2 as i32) - (carry as i32) < 0;
         self.registers.setFlag(Registers::MASK_CARRY_C, carried);
 
         return sum;
@@ -409,22 +448,25 @@ impl CPU
 
     fn popU16(&mut self, bus: &mut Bus) -> u16
     {
-        let low = bus.read(self.registers.sp);
+        let low = bus.read(self.registers.sp) as u16;
         self.registers.sp = self.registers.sp.wrapping_add(1);
 
-        let high = bus.read(self.registers.sp);
+        let high = bus.read(self.registers.sp) as u16;
         self.registers.sp = self.registers.sp.wrapping_add(1);
         
-        return (low as u16) | ((high as u16 ) << 8);
+        return low | high << 8;
     }
 
     fn pushU16(&mut self, bus: &mut Bus, value: u16)
     {
-        self.registers.sp = self.registers.sp.wrapping_sub(1);
-        bus.write(self.registers.sp, (value >> 8) as u8);
+        let high = (value >> 8) as u8;
+        let low = (value & 0xff) as u8;
 
         self.registers.sp = self.registers.sp.wrapping_sub(1);
-        bus.write(self.registers.sp, (value & 0xff) as u8);
+        bus.write(self.registers.sp, high);
+
+        self.registers.sp = self.registers.sp.wrapping_sub(1);
+        bus.write(self.registers.sp, low);
     }
 
     fn callFn(&mut self, bus: &mut Bus, targetAddress: u16)
@@ -846,10 +888,11 @@ impl CPU
 
         if !nFlag
         { 
-            if hFlag || (alu & 0xf) > 0x9
+            if hFlag || (alu & 0x0f) > 0x09
             {
                 correction |= 0x06;
             }
+
             if cFlag || alu > 0x99
             {
                 correction |= 0x60;
@@ -864,10 +907,12 @@ impl CPU
             {
                 correction |= 0x06;
             }
+
             if cFlag
             {
                 correction |= 0x60;
             }
+
             alu = alu.wrapping_sub(correction);
         }
 
@@ -1003,7 +1048,7 @@ impl CPU
         return 8;
     }
 
-    // NC SP | 1  8 | - - - -
+    // INC SP | 1  8 | - - - -
     fn incSp(&mut self, _bus: &mut Bus) -> u8
     {
         let val = self.registers.sp.wrapping_add(1);
@@ -1017,15 +1062,9 @@ impl CPU
     {
         let address = self.registers.getHl();
         let val = bus.read(address);
-        let incdVal = val.wrapping_add(1);
+        let incdVal = self.incU8(val);
 
         bus.write(address, incdVal);
-
-        self.registers.setFlag(Registers::MASK_ZERO_Z, incdVal == 0);
-        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
-
-        let halfCarried = ((val & 0xf).wrapping_add(1)) & 0x10 != 0;
-        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, halfCarried);
 
         return 12;
     }
@@ -1035,15 +1074,9 @@ impl CPU
     {
         let address = self.registers.getHl();
         let val = bus.read(address);
-        let decdVal = val.wrapping_sub(1);
+        let decdVal = self.decU8(val);
 
         bus.write(address, decdVal);
-
-        self.registers.setFlag(Registers::MASK_ZERO_Z, decdVal == 0);
-        self.registers.setFlag(Registers::MASK_SUBTRACT_N, true);
-
-        let halfCarried = (val & 0x0f) == 0;
-        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, halfCarried);
 
         return 12;
     }
@@ -2600,14 +2633,261 @@ impl CPU
         return 16;
     }
 
+    // LDH [a8], A | 2  12 | - - - -
+    fn ldhAddressA(&mut self, bus: &mut Bus) -> u8
+    {
+        let val = self.fetch(bus);
+        let address = 0xff00 | (val as u16);
+
+        bus.write(address, self.registers.a);
+
+        return 12;
+    }
+
+    // POP HL | 1  12 | - - - -
+    fn popHl(&mut self, bus: &mut Bus) -> u8
+    {
+        let val = self.popU16(bus);
+        self.registers.setHl(val);
+
+        return 12;
+    }
+
+    // LDH [C], A | 1  8 | - - - -
+    fn ldhAddressCA(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = 0xff00 | (self.registers.c as u16);
+        bus.write(address, self.registers.a);
+
+        return 8;
+    }
+
+    // PUSH HL | 1  16 | - - - -
+    fn pushHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.pushU16(bus, self.registers.getHl());
+
+        return 16;
+    }
+
+    // AND A, n8 | 2  8 | Z 0 1 0
+    fn andA(&mut self, bus: &mut Bus) -> u8
+    {
+        let x = self.fetch(bus);
+        let val = self.and(self.registers.a, x);
+        self.registers.a = val;
+
+        return 8;
+    }
+
+    // LD [a16], A | 3  16 | - - - -
+    fn ldAddressA(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.fetchU16(bus);
+        bus.write(address, self.registers.a);
+
+        return 16;
+    }
+
+    // RST $20 | 1  16 | - - - -
+    fn rst20(&mut self, bus: &mut Bus) -> u8
+    {
+        self.rst(bus, 0x20);
+
+        return 16;
+    }
+
+    // XOR A, n8 | 2  8 | Z 0 0 0
+    fn xorA(&mut self, bus: &mut Bus) -> u8
+    {
+        let x = self.fetch(bus);
+        let val = self.xor(self.registers.a, x);
+        self.registers.a = val;
+
+        return 8;
+    }
+
+    // ADD SP, e8 | 2  16 | 0 0 H C
+    fn addSp(&mut self, bus: &mut Bus) -> u8
+    {
+        let val = self.fetch(bus) as i8;
+        let sp = self.registers.sp;
+
+        self.registers.sp = sp.wrapping_add(val as i16 as u16);
+
+        self.registers.setFlag(Registers::MASK_ZERO_Z, false);
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
+        
+        let halfCarried = (sp & 0xf) + ((val as u8 as u16) & 0xf) > 0xf;
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, halfCarried);
+
+        let carried = (sp & 0xff) + ((val as u8 as u16) & 0xff) > 0xff;
+        self.registers.setFlag(Registers::MASK_CARRY_C, carried);
+
+        return 16;
+    }
+
+    // JP HL | 1  4 | - - - -
+    fn jpHl(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.pc = self.registers.getHl();
+
+        return 4;
+    }
+
+    // RST $28 | 1  16 | - - - -
+    fn rst28(&mut self, bus: &mut Bus) -> u8
+    {
+        self.rst(bus, 0x28);
+
+        return 16;
+    }
+
+    // LDH A, [a8] | 2  12 | - - - -
+    fn ldhAAddress(&mut self, bus: &mut Bus) -> u8
+    {
+        let x = self.fetch(bus);
+        let address = 0xff00 | (x as u16);
+        let val = bus.read(address);
+
+        self.registers.a = val;
+
+        return 12;
+    }
+
+    // POP AF | 1  12 | Z N H C
+    fn popAf(&mut self, bus: &mut Bus) -> u8
+    {
+        let val = self.popU16(bus);
+        
+        self.registers.setAf(val);
+
+        return 12;
+    }
+
+    // LDH A, [C] | 1  8 | - - - -
+    fn ldhAAddressC(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = 0xff00 | (self.registers.c as u16);
+        let val = bus.read(address);
+
+        self.registers.a = val;
+
+        return 8;
+    }
+
+    // DI | 1  4 | - - - -
+    fn di(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.imeFlag = false;
+
+        return 4;
+    }
+
+    // PUSH AF | 1  16 | - - - -
+    fn pushAf(&mut self, bus: &mut Bus) -> u8
+    {
+        self.pushU16(bus, self.registers.getAf());
+        
+        return 16;
+    }
+
+    // OR A, n8 | 2  8 | Z 0 0 0
+    fn orA(&mut self, bus: &mut Bus) -> u8
+    {
+        let x = self.fetch(bus);
+        let val = self.or(self.registers.a, x);
+        self.registers.a = val;
+
+        return 8;
+    }
+
+    // RST $30 | 1  16 | - - - -
+    fn rst30(&mut self, bus: &mut Bus) -> u8
+    {
+        self.rst(bus, 0x30);
+
+        return 16;
+    }
+
+    // LD HL, SP + e8 | 2  12 | 0 0 H C
+    fn ldHlSpPlusByte(&mut self, bus: &mut Bus) -> u8
+    {
+        let x = self.fetch(bus) as i8;
+        let sp = self.registers.sp;
+        let val = sp.wrapping_add(x as u16);
+
+        self.registers.setFlag(Registers::MASK_ZERO_Z, false);
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
+
+        let halfCarried = ((sp & 0x0f) + (x as u16 & 0x0f)) > 0x0f;
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, halfCarried);
+
+        let carried = ((sp & 0xff) + (x as u16 & 0xff)) > 0xff;
+        self.registers.setFlag(Registers::MASK_CARRY_C, carried);
+
+        self.registers.setHl(val);
+
+        return 12;
+    }
+
+    // LD SP, HL | 1  8 | - - - -
+    fn ldSpHl(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.sp = self.registers.getHl();
+
+        return 8;
+    }
+
+    // LD A, [a16] | 3  16 | - - - -
+    fn ldAAddress(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.fetchU16(bus);
+        let val = bus.read(address);
+        self.registers.a = val;
+
+        return 16;
+    }
+
+    // EI | 1  4 | - - - -
+    fn ei(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.imeFlag = true;
+
+        return 4;
+    }
+
+    // CP A, n8 | 2  8 | Z 1 H C
+    fn cpA(&mut self, bus: &mut Bus) -> u8
+    {
+        let x = self.fetch(bus);
+        self.sub(self.registers.a, x, false);
+
+        return 8;
+    }
+
+    // RST $38 | 1  16 | - - - -
+    fn rst38(&mut self, bus: &mut Bus) -> u8
+    {
+        self.rst(bus, 0x38);
+
+        return 16;
+    }
+
+
     fn execute(&mut self, opcode: u8, bus: &mut Bus)
     {
         let _clockCycle = self.instructions[opcode as usize](self, bus);
     }
 
     // NOP | 1  4
-    pub fn nop(&mut self, _bus: &mut Bus) -> u8
+    fn nop(&mut self, _bus: &mut Bus) -> u8
     {
         return 4;
+    }
+
+    fn notImplemented(&mut self, _bus: &mut Bus) -> u8
+    {
+        panic!("Not implemented");
     }
 }

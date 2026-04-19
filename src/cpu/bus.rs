@@ -1,5 +1,5 @@
 use std::{fs::File, io::Read};
-
+use std::io::{self, Write};
 pub struct Bus 
 {
     pub memory: [u8; 0x10000]
@@ -23,10 +23,15 @@ impl Bus
     {
         if address == 0xff01 || address == 0xff02
         {
-            print!("val: {}", address);
-            use std::io::{self, Write};
+            print!("{}", value as char);
             io::stdout().flush().unwrap();
+            return;
         }
+
+/*         if address < 0x8000 
+        {
+            return;
+        } */
 
         self.memory[address as usize] = value;
     }

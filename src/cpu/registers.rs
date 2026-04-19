@@ -29,7 +29,7 @@ impl Registers
         }
     }
 
-    pub fn getFlag(&mut self, mask: u8) -> bool 
+    pub fn getFlag(&self, mask: u8) -> bool 
     {
         let val = (self.f & mask) != 0;
 
@@ -81,5 +81,16 @@ impl Registers
         // 0000 0000 1111 1111
         self.h = (value >> 8) as u8;
         self.l = (value & 0xff) as u8;
+    }
+
+    pub fn getAf(&self) -> u16
+    {
+        return ((self.a as u16) << 8) | (self.f as u16);
+    }
+
+    pub fn setAf(&mut self, value: u16)
+    {
+        self.a = (value >> 8) as u8;
+        self.f = (value & 0xf0) as u8;
     }
 }
