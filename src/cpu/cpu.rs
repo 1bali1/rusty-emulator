@@ -206,6 +206,23 @@ impl CPU
         cpu.instructions[0xae] = CPU::xorAAddressHl;
         cpu.instructions[0xaf] = CPU::xorAA;
 
+        cpu.instructions[0xb0] = CPU::orAB;
+        cpu.instructions[0xb1] = CPU::orAC;
+        cpu.instructions[0xb2] = CPU::orAD;
+        cpu.instructions[0xb3] = CPU::orAE;
+        cpu.instructions[0xb4] = CPU::orAH;
+        cpu.instructions[0xb5] = CPU::orAL;
+        cpu.instructions[0xb6] = CPU::orAAddressHl;
+        cpu.instructions[0xb7] = CPU::orAA;
+        cpu.instructions[0xb8] = CPU::cpAB;
+        cpu.instructions[0xb9] = CPU::cpAC;
+        cpu.instructions[0xba] = CPU::cpAD;
+        cpu.instructions[0xbb] = CPU::cpAE;
+        cpu.instructions[0xbc] = CPU::cpAH;
+        cpu.instructions[0xbd] = CPU::cpAL;
+        cpu.instructions[0xbe] = CPU::cpAAddressHl;
+        cpu.instructions[0xbf] = CPU::cpAA;
+
         return cpu;
 
     }
@@ -341,6 +358,18 @@ impl CPU
 
         return val;
     }
+
+    fn or(&mut self, num1: u8, num2: u8) -> u8
+    {
+        let val = num1 | num2;
+
+        self.registers.setFlag(Registers::MASK_ZERO_Z, val == 0);
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, false);
+        self.registers.setFlag(Registers::MASK_CARRY_C, false);
+
+        return val;
+    } 
 
     // LD BC, n16 | 3  12
     fn ldBc(&mut self, bus: &mut Bus) -> u8
@@ -2010,7 +2039,146 @@ impl CPU
         return 4;
     }
 
+    // OR A, B | 1  4 | Z 0 0 0
+    fn orAB(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.or(self.registers.a, self.registers.b);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // OR A, C | 1  4 | Z 0 0 0
+    fn orAC(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.or(self.registers.a, self.registers.c);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // OR A, D | 1  4 | Z 0 0 0
+    fn orAD(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.or(self.registers.a, self.registers.d);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // OR A, E | 1  4 | Z 0 0 0
+    fn orAE(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.or(self.registers.a, self.registers.e);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // OR A, H | 1  4 | Z 0 0 0
+    fn orAH(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.or(self.registers.a, self.registers.h);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // OR A, L | 1  4 | Z 0 0 0
+    fn orAL(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.or(self.registers.a, self.registers.l);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // OR A, [HL] | 1  8 | Z 0 0 0
+    fn orAAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        let x = bus.read(address);
+        let val = self.or(self.registers.a, x);
+        self.registers.a = val;
+
+        return 8;
+    }
+
+    // OR A, A | 1  4 | Z 0 0 0
+    fn orAA(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.or(self.registers.a, self.registers.a);
+        self.registers.a = val;
+
+        return 4;
+    }
     
+    // CP A, B | 1  4 | Z 1 H C
+    fn cpAB(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.sub(self.registers.a, self.registers.b, false);
+
+        return 4;
+    }
+
+    // CP A, C | 1  4 | Z 1 H C
+    fn cpAC(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.sub(self.registers.a, self.registers.c, false);
+
+        return 4;
+    }
+
+    // CP A, D | 1  4 | Z 1 H C
+    fn cpAD(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.sub(self.registers.a, self.registers.d, false);
+
+        return 4;
+    }
+
+    // CP A, E | 1  4 | Z 1 H C
+    fn cpAE(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.sub(self.registers.a, self.registers.e, false);
+
+        return 4;
+    }
+
+    // CP A, H | 1  4 | Z 1 H C
+    fn cpAH(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.sub(self.registers.a, self.registers.h, false);
+
+        return 4;
+    }
+
+    // CP A, L | 1  4 | Z 1 H C
+    fn cpAL(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.sub(self.registers.a, self.registers.l, false);
+
+        return 4;
+    }
+
+    // CP A, [HL] | 1  8 | Z 1 H C
+    fn cpAAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        let x = bus.read(address);
+        self.sub(self.registers.a, x, false);
+
+        return 8;
+    }
+
+    // CP A, A | 1  4 | Z 1 H C
+    fn cpAA(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.sub(self.registers.a, self.registers.a, false);
+
+        return 4;
+    }
+
     fn execute(&mut self, opcode: u8, bus: &mut Bus)
     {
         let _clockCycle = self.instructions[opcode as usize](self, bus);
