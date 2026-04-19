@@ -7,7 +7,8 @@ pub struct CPU
 {
     pub registers: Registers,
     pub isHalted: bool,
-    instructions: [InstructionFn; 256]
+    instructions: [InstructionFn; 256],
+    prefixedInstructions: [InstructionFn; 256]
 }
 
 impl CPU
@@ -17,7 +18,8 @@ impl CPU
         let mut cpu = CPU {
             registers: Registers::new(),
             isHalted: false,
-            instructions: [CPU::nop; 256]
+            instructions: [CPU::nop; 256],
+            prefixedInstructions: [CPU::nop; 256]
         };
 
         cpu.instructions[0x01] = CPU::ldBc;
@@ -223,6 +225,23 @@ impl CPU
         cpu.instructions[0xbe] = CPU::cpAAddressHl;
         cpu.instructions[0xbf] = CPU::cpAA;
 
+        cpu.instructions[0xc0] = CPU::retNz;
+        cpu.instructions[0xc1] = CPU::popBc;
+        cpu.instructions[0xc2] = CPU::jpNz;
+        cpu.instructions[0xc3] = CPU::jp;
+        cpu.instructions[0xc4] = CPU::callNz;
+        cpu.instructions[0xc5] = CPU::pushBc;
+        cpu.instructions[0xc6] = CPU::addA;
+        cpu.instructions[0xc7] = CPU::rst00;
+        cpu.instructions[0xc8] = CPU::retZ;
+        cpu.instructions[0xc9] = CPU::ret;
+        cpu.instructions[0xca] = CPU::jpZ;
+        cpu.instructions[0xcb] = CPU::prefix;
+        cpu.instructions[0xcc] = CPU::callZ;
+        cpu.instructions[0xcd] = CPU::call;
+        cpu.instructions[0xce] = CPU::adcA;
+        cpu.instructions[0xcf] = CPU::rst08;
+
         return cpu;
 
     }
@@ -369,7 +388,44 @@ impl CPU
         self.registers.setFlag(Registers::MASK_CARRY_C, false);
 
         return val;
-    } 
+    }
+
+    fn popU16(&mut self, bus: &mut Bus) -> u16
+    {
+        let low = bus.read(self.registers.sp);
+        self.registers.sp = self.registers.sp.wrapping_add(1);
+
+        let high = bus.read(self.registers.sp);
+        self.registers.sp = self.registers.sp.wrapping_add(1);
+        
+        return (low as u16) | ((high as u16 ) << 8);
+    }
+
+    fn pushU16(&mut self, bus: &mut Bus, value: u16)
+    {
+        self.registers.sp = self.registers.sp.wrapping_sub(1);
+        bus.write(self.registers.sp, (value >> 8) as u8);
+
+        self.registers.sp = self.registers.sp.wrapping_sub(1);
+        bus.write(self.registers.sp, (value & 0xff) as u8);
+    }
+
+    fn callFn(&mut self, bus: &mut Bus, targetAddress: u16)
+    {
+        let address = self.registers.pc;
+
+        self.pushU16(bus, address);
+
+        self.registers.pc = targetAddress;
+    }
+
+    fn rst(&mut self, bus: &mut Bus, target: u16)
+    {
+        let address = self.registers.pc;
+        self.pushU16(bus, address);
+
+        self.registers.pc = target;
+    }
 
     // LD BC, n16 | 3  12
     fn ldBc(&mut self, bus: &mut Bus) -> u8
@@ -2177,6 +2233,194 @@ impl CPU
         self.sub(self.registers.a, self.registers.a, false);
 
         return 4;
+    }
+
+    // RET NZ | 1  20/8 | - - - -
+    fn retNz(&mut self, bus: &mut Bus) -> u8
+    {
+        let flag = self.registers.getFlag(Registers::MASK_ZERO_Z);
+
+        if flag
+        {
+            return 8;
+        }
+
+        self.registers.pc = self.popU16(bus);
+
+        return 20;
+    }
+
+    // POP BC | 1  12 | - - - -
+    fn popBc(&mut self, bus: &mut Bus) -> u8
+    {
+        let val = self.popU16(bus);
+        self.registers.setBc(val);
+
+        return 12;
+    }
+ 
+    // JP NZ, a16 | 3  16/12 | - - - -
+    fn jpNz(&mut self, bus: &mut Bus) -> u8
+    {
+        let flag = self.registers.getFlag(Registers::MASK_ZERO_Z);
+
+        if flag
+        {
+            return 12;
+        }
+
+        let address = self.fetchU16(bus);
+        self.registers.pc = address;
+
+        return 16;
+    }
+
+    // JP a16 | 3  16 | - - - -
+    fn jp(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.fetchU16(bus);
+        self.registers.pc = address;
+
+        return 16;
+    }
+
+    // CALL NZ, a16 | 3  24/12 | - - - -
+    fn callNz(&mut self, bus: &mut Bus) -> u8
+    {
+        let flag = self.registers.getFlag(Registers::MASK_ZERO_Z);
+
+        let targetAddress = self.fetchU16(bus);
+
+        if flag
+        {
+            return 12;
+        }
+
+        self.callFn(bus, targetAddress);
+
+        return 24;
+    }
+
+    // PUSH BC | 1  16 | - - - -
+    fn pushBc(&mut self, bus: &mut Bus) -> u8
+    {
+        self.pushU16(bus, self.registers.getBc());
+
+        return 16;
+    }
+
+    // ADD A, n8 | 2  8 | Z 0 H C
+    fn addA(&mut self, bus: &mut Bus) -> u8
+    {
+        let x = self.fetch(bus);
+        let val = self.add(self.registers.a, x, false);
+        self.registers.a = val;
+
+        return 8;
+    }
+
+    // RST $00 | 1  16 | - - - - 
+    fn rst00(&mut self, bus: &mut Bus) -> u8
+    {
+        self.rst(bus, 0x00);
+
+        return 16;
+    }
+ 
+    // RET Z | 1 | 20/8 | - - - -
+    fn retZ(&mut self, bus: &mut Bus) -> u8
+    {
+        let flag = self.registers.getFlag(Registers::MASK_ZERO_Z);
+
+        if !flag
+        {
+            return 8;
+        }
+
+        let address = self.popU16(bus);
+        self.registers.pc = address;
+
+        return 20;
+    }
+
+    // RET | 1  16 | - - - -
+    fn ret(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.popU16(bus);
+        self.registers.pc = address;
+
+        return 16;
+    }
+
+    // JP Z, a16 | 3  16/12 | - - - -
+    fn jpZ(&mut self, bus: &mut Bus) -> u8
+    {
+        let flag = self.registers.getFlag(Registers::MASK_ZERO_Z);
+
+        let address = self.fetchU16(bus);
+
+        if !flag
+        {
+            return 12;
+        }
+
+        self.registers.pc = address;
+
+        return 16;
+    }
+
+    // PREFIX | 1  4 | - - - -
+    fn prefix(&mut self, bus: &mut Bus) -> u8
+    {
+        let opcode = self.fetch(bus);
+        let clockCycle = self.prefixedInstructions[opcode as usize](self, bus);
+
+        return 4 + clockCycle;
+    }
+
+    // CALL Z, a16 | 3  24/12 | - - - -
+    fn callZ(&mut self, bus: &mut Bus) -> u8
+    {
+        let flag = self.registers.getFlag(Registers::MASK_ZERO_Z);
+
+        let targetAddress = self.fetchU16(bus);
+
+        if !flag
+        {
+            return 12;
+        }
+
+        self.callFn(bus, targetAddress);
+
+        return 24;
+    }
+
+    // CALL a16 | 3  24 | - - - -
+    fn call(&mut self, bus: &mut Bus) -> u8
+    {
+        let targetAddress = self.fetchU16(bus);
+
+        self.callFn(bus, targetAddress);
+
+        return 24;
+    }
+
+    // ADC A, n8 | 2  8 | Z 0 H C
+    fn adcA(&mut self, bus: &mut Bus) -> u8
+    {
+        let x = self.fetch(bus);
+        let val = self.add(self.registers.a, x, true);
+        self.registers.a = val;
+
+        return 8;
+    }
+
+    // RST $08 | 1  16 | - - - -
+    fn rst08(&mut self, bus: &mut Bus) -> u8
+    {
+        self.rst(bus, 0x08);
+
+        return 16;
     }
 
     fn execute(&mut self, opcode: u8, bus: &mut Bus)

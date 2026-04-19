@@ -16,10 +16,16 @@ fn main()
     let mut bus = Bus::new();
     let mut cpu = CPU::new();
 
-    bus.write(0x0100, 0x97);
+    let gbName = String::from("cputest.gb");
+    bus.loadRom(&gbName);
     
 
-    for _ in 0..2 {
+    loop {
+        let pc = cpu.registers.pc;
+        let opcode = bus.read(pc);
+        
+        // println!("PC: {:#06X} | Opcode: {:#04X}", pc, opcode);
+        
         cpu.step(&mut bus);
     }
 
