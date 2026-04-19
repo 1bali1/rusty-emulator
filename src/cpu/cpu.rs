@@ -189,12 +189,35 @@ impl CPU
         cpu.instructions[0x9e] = CPU::sbcAAddressHl;
         cpu.instructions[0x9f] = CPU::sbcAA;
 
+        cpu.instructions[0xa0] = CPU::andAB;
+        cpu.instructions[0xa1] = CPU::andAC;
+        cpu.instructions[0xa2] = CPU::andAD;
+        cpu.instructions[0xa3] = CPU::andAE;
+        cpu.instructions[0xa4] = CPU::andAH;
+        cpu.instructions[0xa5] = CPU::andAL;
+        cpu.instructions[0xa6] = CPU::andAAddressHl;
+        cpu.instructions[0xa7] = CPU::andAA;
+        cpu.instructions[0xa8] = CPU::xorAB;
+        cpu.instructions[0xa9] = CPU::xorAC;
+        cpu.instructions[0xaa] = CPU::xorAD;
+        cpu.instructions[0xab] = CPU::xorAE;
+        cpu.instructions[0xac] = CPU::xorAH;
+        cpu.instructions[0xad] = CPU::xorAL;
+        cpu.instructions[0xae] = CPU::xorAAddressHl;
+        cpu.instructions[0xaf] = CPU::xorAA;
+
         return cpu;
 
     }
 
     pub fn step(&mut self, bus: &mut Bus)
-    {
+    {  
+        // TODO: impl interrupts + ticks
+        if self.isHalted
+        {
+            return;
+        }
+
         let opcode = self.fetch(bus);
 
         self.execute(opcode, bus);
@@ -282,7 +305,7 @@ impl CPU
         let carry = if withCarry { self.registers.getFlag(Registers::MASK_CARRY_C) as u8 } else { 0 };
 
         let sum = (num1).wrapping_sub(num2).wrapping_sub(carry);
-        println!("{}", sum);
+
         self.registers.setFlag(Registers::MASK_ZERO_Z, sum == 0);
         self.registers.setFlag(Registers::MASK_SUBTRACT_N, true);
 
@@ -293,6 +316,30 @@ impl CPU
         self.registers.setFlag(Registers::MASK_CARRY_C, carried);
 
         return sum;
+    }
+
+    fn and(&mut self, num1: u8, num2: u8) -> u8
+    {
+        let val = num1 & num2;
+
+        self.registers.setFlag(Registers::MASK_ZERO_Z, val == 0);
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, true);
+        self.registers.setFlag(Registers::MASK_CARRY_C, false);
+
+        return val;
+    }
+
+    fn xor(&mut self, num1: u8, num2: u8) -> u8
+    {
+        let val = num1 ^ num2;
+
+        self.registers.setFlag(Registers::MASK_ZERO_Z, val == 0);
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, false);
+        self.registers.setFlag(Registers::MASK_CARRY_C, false);
+
+        return val;
     }
 
     // LD BC, n16 | 3  12
@@ -1815,6 +1862,155 @@ impl CPU
         return 4;
     }
 
+    // AND A, B | 1  4 | Z 0 1 0
+    fn andAB(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.and(self.registers.a, self.registers.b);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // AND A, C | 1  4 | Z 0 1 0
+    fn andAC(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.and(self.registers.a, self.registers.c);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // AND A, D | 1  4 | Z 0 1 0
+    fn andAD(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.and(self.registers.a, self.registers.d);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // AND A, E | 1  4 | Z 0 1 0
+    fn andAE(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.and(self.registers.a, self.registers.e);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // AND A, H | 1  4 | Z 0 1 0
+    fn andAH(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.and(self.registers.a, self.registers.h);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // AND A, L | 1  4 | Z 0 1 0
+    fn andAL(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.and(self.registers.a, self.registers.l);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // AND A, [HL] | 1  8 | Z 0 1 0
+    fn andAAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        let x = bus.read(address);
+        let val = self.and(self.registers.a, x);
+        self.registers.a = val;
+
+        return 8;
+    }
+
+    // AND A, A | 1  4 | Z 0 1 0
+    fn andAA(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.and(self.registers.a, self.registers.a);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // XOR A, B | 1  4 | Z 0 0 0
+    fn xorAB(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.xor(self.registers.a, self.registers.b);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // XOR A, C | 1  4 | Z 0 0 0
+    fn xorAC(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.xor(self.registers.a, self.registers.c);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // XOR A, D | 1  4 | Z 0 0 0
+    fn xorAD(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.xor(self.registers.a, self.registers.d);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // XOR A, E | 1  4 | Z 0 0 0
+    fn xorAE(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.xor(self.registers.a, self.registers.e);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // XOR A, H | 1  4 | Z 0 0 0
+    fn xorAH(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.xor(self.registers.a, self.registers.h);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // XOR A, L | 1  4 | Z 0 0 0
+    fn xorAL(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.xor(self.registers.a, self.registers.l);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    // XOR A, [HL] | 1  8 | Z 0 0 0
+    fn xorAAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        let x = bus.read(address);
+        let val = self.xor(self.registers.a, x);
+        self.registers.a = val;
+
+        return 8;
+    }
+
+    // XOR A, A | 1  4 | Z 0 0 0
+    fn xorAA(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.xor(self.registers.a, self.registers.a);
+        self.registers.a = val;
+
+        return 4;
+    }
+
+    
     fn execute(&mut self, opcode: u8, bus: &mut Bus)
     {
         let _clockCycle = self.instructions[opcode as usize](self, bus);
@@ -1823,6 +2019,6 @@ impl CPU
     // NOP | 1  4
     pub fn nop(&mut self, _bus: &mut Bus) -> u8
     {
-        return 1;
+        return 4;
     }
 }
