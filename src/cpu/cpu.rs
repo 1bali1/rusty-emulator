@@ -242,6 +242,23 @@ impl CPU
         cpu.instructions[0xce] = CPU::adcA;
         cpu.instructions[0xcf] = CPU::rst08;
 
+        cpu.instructions[0xd0] = CPU::retNc;
+        cpu.instructions[0xd1] = CPU::popDe;
+        cpu.instructions[0xd2] = CPU::jpNc;
+        cpu.instructions[0xd3] = CPU::nop;
+        cpu.instructions[0xd4] = CPU::callNc;
+        cpu.instructions[0xd5] = CPU::pushDe;
+        cpu.instructions[0xd6] = CPU::subA;
+        cpu.instructions[0xd7] = CPU::rst10;
+        cpu.instructions[0xd8] = CPU::retC;
+        cpu.instructions[0xd9] = CPU::reti;
+        cpu.instructions[0xda] = CPU::jpC;
+        cpu.instructions[0xdb] = CPU::nop;
+        cpu.instructions[0xdc] = CPU::callC;
+        cpu.instructions[0xdd] = CPU::nop;
+        cpu.instructions[0xde] = CPU::sbcA;
+        cpu.instructions[0xdf] = CPU::rst18;
+
         return cpu;
 
     }
@@ -345,10 +362,10 @@ impl CPU
         self.registers.setFlag(Registers::MASK_ZERO_Z, sum == 0);
         self.registers.setFlag(Registers::MASK_SUBTRACT_N, true);
 
-        let halfCarried = (num1 & 0xf) < (num2 & 0xf) + carry;
+        let halfCarried = (num1 & 0x0f) < (num2 & 0x0f).wrapping_add(carry);
         self.registers.setFlag(Registers::MASK_HALF_CARRY_H, halfCarried);
 
-        let carried = (num1 as u16) < (num2 as u16) + (carry as u16);
+        let carried = (num1 as u16) < (num2 as u16).wrapping_add(carry as u16);
         self.registers.setFlag(Registers::MASK_CARRY_C, carried);
 
         return sum;
@@ -2419,6 +2436,166 @@ impl CPU
     fn rst08(&mut self, bus: &mut Bus) -> u8
     {
         self.rst(bus, 0x08);
+
+        return 16;
+    }
+
+    // RET NC | 1  20/8 | - - - -
+    fn retNc(&mut self, bus: &mut Bus) -> u8
+    {
+        let flag = self.registers.getFlag(Registers::MASK_CARRY_C);
+
+        if flag
+        {
+            return 8;
+        }
+
+       self.registers.pc = self.popU16(bus);
+
+        return 20;
+    }
+
+    // POP DE | 1  12 | - - - -
+    fn popDe(&mut self, bus: &mut Bus) -> u8
+    {
+        let val = self.popU16(bus);
+        self.registers.setDe(val);
+        
+        return 12;
+    }
+
+    // JP NC, a16 | 3  16/12 | - - - -
+    fn jpNc(&mut self, bus: &mut Bus) -> u8
+    {
+        let flag = self.registers.getFlag(Registers::MASK_CARRY_C);
+
+        let address = self.fetchU16(bus);
+
+        if flag
+        {
+            return 12;
+        }
+
+        self.registers.pc = address;
+
+        return 16;
+    }
+
+    // CALL NC, a16 | 3  24/12 | - - - -
+    fn callNc(&mut self, bus: &mut Bus) -> u8
+    {
+        let flag = self.registers.getFlag(Registers::MASK_CARRY_C);
+
+        let targetAddress = self.fetchU16(bus);
+
+        if flag
+        {
+            return 12;
+        }
+
+        self.callFn(bus, targetAddress);
+
+        return 24;
+    }
+
+    // PUSH DE | 1  16 | - - - -
+    fn pushDe(&mut self, bus: &mut Bus) -> u8
+    {
+        self.pushU16(bus, self.registers.getDe());
+
+        return 16;
+    }
+
+    // SUB A, n8 | 2  8 | Z 1 H C
+    fn subA(&mut self, bus: &mut Bus) -> u8
+    {
+        let x = self.fetch(bus);
+        let val = self.sub(self.registers.a, x, false);
+        self.registers.a = val;
+
+        return 8;
+    }
+
+    // RST $10 | 1  16 | - - - -
+    fn rst10(&mut self, bus: &mut Bus) -> u8
+    {
+        self.rst(bus, 0x10);
+
+        return 16;
+    }
+
+    // RET C | 1  20/8 | - - - -
+    fn retC(&mut self, bus: &mut Bus) -> u8
+    {
+        let flag = self.registers.getFlag(Registers::MASK_CARRY_C);
+
+        if !flag
+        {
+            return 8;
+        }
+
+        self.registers.pc = self.popU16(bus);
+
+        return 20;
+    }
+
+    // RETI | 1  16 | - - - -
+    // TODO: impl interrupts
+    fn reti(&mut self, bus: &mut Bus) -> u8
+    {
+        self.registers.pc = self.popU16(bus);
+
+        return 16;
+    }
+
+    // JP C, a16 | 3  16/12 | - - - -
+    fn jpC(&mut self, bus: &mut Bus) -> u8
+    {
+        let flag = self.registers.getFlag(Registers::MASK_CARRY_C);
+
+        let address = self.fetchU16(bus);
+
+        if !flag
+        {
+            return 12;
+        }
+
+        self.registers.pc = address;
+
+        return 16;
+    }
+
+    // CALL C, a16 | 3  24/12 | - - - -
+    fn callC(&mut self, bus: &mut Bus) -> u8
+    {
+        let flag = self.registers.getFlag(Registers::MASK_CARRY_C);
+
+        let targetAddress = self.fetchU16(bus);
+
+        if !flag
+        {
+            return 12;
+        }
+
+        self.callFn(bus, targetAddress);
+
+        return 16;
+    }
+
+    // SBC A, n8 | 2  8 | Z 1 H C
+    fn sbcA(&mut self, bus: &mut Bus) -> u8
+    {
+        let x = self.fetch(bus);
+        let val = self.sub(self.registers.a, x, true);
+        self.registers.a = val;
+
+        return 8;
+    }
+    
+    // RST $18 | 1  16 | - - - -
+    fn rst18(&mut self, bus: &mut Bus) -> u8
+    {
+        self.rst(bus, 0x18);
 
         return 16;
     }

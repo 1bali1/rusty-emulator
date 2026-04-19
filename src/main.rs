@@ -18,13 +18,12 @@ fn main()
 
     let gbName = String::from("cputest.gb");
     bus.loadRom(&gbName);
-    
 
     loop {
         let pc = cpu.registers.pc;
         let opcode = bus.read(pc);
         
-        // println!("PC: {:#06X} | Opcode: {:#04X}", pc, opcode);
+        //println!("PC: {:#06X} | Opcode: {:#04X}", pc, opcode);
         
         cpu.step(&mut bus);
     }

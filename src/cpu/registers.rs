@@ -70,7 +70,7 @@ impl Registers
         self.e = (value & 0xff) as u8;
     }
 
-    pub fn getHl(&mut self) -> u16
+    pub fn getHl(&self) -> u16
     {
         return ((self.h as u16) << 8) | (self.l as u16);
     }

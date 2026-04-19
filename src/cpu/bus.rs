@@ -21,10 +21,9 @@ impl Bus
 
     pub fn write(&mut self, address: u16, value: u8)
     {
-        if address == 0xff01
+        if address == 0xff01 || address == 0xff02
         {
-            println!("helo");
-            print!("{}", value as char);
+            print!("val: {}", address);
             use std::io::{self, Write};
             io::stdout().flush().unwrap();
         }
