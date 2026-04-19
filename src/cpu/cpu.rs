@@ -121,6 +121,23 @@ impl CPU
         cpu.instructions[0x5e] = CPU::ldEAddressHl;
         cpu.instructions[0x5f] = CPU::ldEA;
 
+        cpu.instructions[0x60] = CPU::ldHB;
+        cpu.instructions[0x61] = CPU::ldHC;
+        cpu.instructions[0x62] = CPU::ldHD;
+        cpu.instructions[0x63] = CPU::ldHE;
+        cpu.instructions[0x64] = CPU::ldHH;
+        cpu.instructions[0x65] = CPU::ldHL;
+        cpu.instructions[0x66] = CPU::ldHAddressHl;
+        cpu.instructions[0x67] = CPU::ldHA;
+        cpu.instructions[0x68] = CPU::ldLB;
+        cpu.instructions[0x69] = CPU::ldLC;
+        cpu.instructions[0x6a] = CPU::ldLD;
+        cpu.instructions[0x6b] = CPU::ldLE;
+        cpu.instructions[0x6c] = CPU::ldLH;
+        cpu.instructions[0x6d] = CPU::ldLL;
+        cpu.instructions[0x6e] = CPU::ldLAddressHl;
+        cpu.instructions[0x6f] = CPU::ldLA;
+
         return cpu;
 
     }
@@ -1149,6 +1166,134 @@ impl CPU
     {
         self.registers.e = self.registers.a;
 
+        return 4;
+    }
+
+    // LD H, B | 1  4 | - - - -
+    fn ldHB(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.h = self.registers.b;
+
+        return 4;
+    }
+
+    // LD H, C | 1  4 | - - - -
+    fn ldHC(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.h = self.registers.c;
+        
+        return 4;
+    }
+
+    // LD H, D | 1  4 | - - - -
+    fn ldHD(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.h = self.registers.d;
+
+        return 4;
+    }
+
+    // LD H, E | 1  4 | - - - -
+    fn ldHE(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.h = self.registers.e;
+
+        return 4;
+    }
+
+    // LD H, H | 1  4 | - - - -
+    fn ldHH(&mut self, _bus: &mut Bus) -> u8
+    {
+        return 4;
+    }
+
+    // LD H, L | 1  4 | - - - -
+    fn ldHL(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.h = self.registers.l;
+        
+        return 4;
+    }
+
+    // LD H, [HL] | 1  8 | - - - -
+    fn ldHAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        let val = bus.read(address);
+        self.registers.h = val;
+
+        return 8;
+    }
+
+    // LD H, A | 1  4 | - - - -
+    fn ldHA(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.h = self.registers.a;
+
+        return 4;
+    }
+
+    // LD L, B | 1  4 | - - - -
+    fn ldLB(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.l = self.registers.b;
+        
+        return 4;
+    }
+
+    // LD L, C | 1  4 | - - - -
+    fn ldLC(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.l = self.registers.c;
+
+        return 4;
+    }
+
+    // LD L, D | 1  4 | - - - -
+    fn ldLD(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.l = self.registers.d;
+
+        return 4;
+    }
+
+    // LD L, E | 1  4 | - - - -
+    fn ldLE(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.l = self.registers.e;
+
+        return 4;
+    }
+
+    // LD L, H | 1  4 | - - - -
+    fn ldLH(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.l = self.registers.h;
+
+        return 4;
+    }
+
+    // LD L, L | 1  4 | - - - -
+    fn ldLL(&mut self, _bus: &mut Bus) -> u8
+    {
+        return 4;
+    }
+
+    // LD L, [HL] | 1  8 | - - - -
+    fn ldLAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        let address = self.registers.getHl();
+        let val = bus.read(address);
+        self.registers.l = val;
+
+        return 8;
+    }
+
+    // LD L, A | 1  4 | - - - -
+    fn ldLA(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.l = self.registers.a;
+        
         return 4;
     }
 
