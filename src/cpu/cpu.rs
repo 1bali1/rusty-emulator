@@ -1,5 +1,5 @@
 use crate::bus::Bus;
-use crate::registers::Registers;
+use crate::registers::{self, Registers};
 
 type InstructionFn = fn(&mut CPU, &mut Bus) -> u8;
 
@@ -155,6 +155,8 @@ impl CPU
         cpu.instructions[0x7e] = CPU::ldAAddressHl;
         cpu.instructions[0x7f] = CPU::ldAA;
 
+        cpu.instructions[0x80] = CPU::addAB;
+
         return cpu;
 
     }
@@ -208,6 +210,22 @@ impl CPU
         self.registers.setFlag(Registers::MASK_HALF_CARRY_H, overflow);
 
         return decdVal;
+    }
+
+    fn add(&mut self, num1: u8, num2: u8) -> u8
+    {
+        let sum = (num1 as u16).wrapping_add(num2 as u16);
+
+        self.registers.setFlag(Registers::MASK_ZERO_Z, (sum as u8) == 0);
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
+
+        let halfCarried = (num1 & 0xf) + (num2 & 0xf) > 0xf;
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, halfCarried);
+
+        let carried = sum > 0xff;
+        self.registers.setFlag(Registers::MASK_CARRY_C, carried);
+
+        return sum as u8;
     }
 
     fn addU16(&mut self, num1: u16, num2: u16) -> u16
@@ -1446,6 +1464,15 @@ impl CPU
     // LD A, A | 1  4 | - - - -
     fn ldAA(&mut self, _bus: &mut Bus) -> u8
     {
+        return 4;
+    }
+
+    // ADD A, B | 1  4 | Z 0 H C 
+    fn addAB(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.add(self.registers.a, self.registers.b);
+        self.registers.a = val;
+
         return 4;
     }
 
