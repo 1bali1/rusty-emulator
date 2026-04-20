@@ -21,6 +21,8 @@ impl Bus
 
     pub fn write(&mut self, address: u16, value: u8)
     {
+        self.memory[address as usize] = value;
+        
         if address == 0xff01 || address == 0xff02
         {
             print!("{}", value as char);
@@ -33,7 +35,6 @@ impl Bus
             return;
         } */
 
-        self.memory[address as usize] = value;
     }
 
     pub fn loadRom(&mut self, name: &String)
