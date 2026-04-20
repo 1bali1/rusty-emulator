@@ -303,7 +303,7 @@ impl CPU
         cpu.prefixedInstructions[0x03] = CPU::rlcE;
         cpu.prefixedInstructions[0x04] = CPU::rlcH;
         cpu.prefixedInstructions[0x05] = CPU::rlcL;
-        cpu.prefixedInstructions[0x06] = CPU::rlcAddressHL;
+        cpu.prefixedInstructions[0x06] = CPU::rlcAddressHl;
         cpu.prefixedInstructions[0x07] = CPU::rlcA;
         cpu.prefixedInstructions[0x08] = CPU::rrcB;
         cpu.prefixedInstructions[0x09] = CPU::rrcC;
@@ -311,8 +311,25 @@ impl CPU
         cpu.prefixedInstructions[0x0b] = CPU::rrcE;
         cpu.prefixedInstructions[0x0c] = CPU::rrcH;
         cpu.prefixedInstructions[0x0d] = CPU::rrcL;
-        cpu.prefixedInstructions[0x0e] = CPU::rrcAddressHL;
+        cpu.prefixedInstructions[0x0e] = CPU::rrcAddressHl;
         cpu.prefixedInstructions[0x0f] = CPU::rrcA;
+
+        cpu.prefixedInstructions[0x10] = CPU::rlB;
+        cpu.prefixedInstructions[0x11] = CPU::rlC;
+        cpu.prefixedInstructions[0x12] = CPU::rlD;
+        cpu.prefixedInstructions[0x13] = CPU::rlE;
+        cpu.prefixedInstructions[0x14] = CPU::rlH;
+        cpu.prefixedInstructions[0x15] = CPU::rlL;
+        cpu.prefixedInstructions[0x16] = CPU::rlAddressHl;
+        cpu.prefixedInstructions[0x17] = CPU::rlA;
+        cpu.prefixedInstructions[0x18] = CPU::rrB;
+        cpu.prefixedInstructions[0x19] = CPU::rrC;
+        cpu.prefixedInstructions[0x1a] = CPU::rrD;
+        cpu.prefixedInstructions[0x1b] = CPU::rrE;
+        cpu.prefixedInstructions[0x1c] = CPU::rrH;
+        cpu.prefixedInstructions[0x1d] = CPU::rrL;
+        cpu.prefixedInstructions[0x1e] = CPU::rrAddressHl;
+        cpu.prefixedInstructions[0x1f] = CPU::rrA;
 
         return cpu;
 
@@ -503,15 +520,20 @@ impl CPU
         self.registers.pc = target;
     }
 
+    fn setRotateFlags(&mut self, val: u8, bit: u8)
+    {
+        self.registers.setFlag(Registers::MASK_ZERO_Z, val == 0);
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, false);
+        self.registers.setFlag(Registers::MASK_CARRY_C, bit == 1);
+    }
+
     fn rlc(&mut self, value: u8) -> u8
     {
         let bit = (value & 0x80) >> 7;
         let res = (value << 1) | bit;
 
-        self.registers.setFlag(Registers::MASK_ZERO_Z, res == 0);
-        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
-        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, false);
-        self.registers.setFlag(Registers::MASK_CARRY_C, bit == 1);
+        self.setRotateFlags(res, bit);
 
         return res;
     }
@@ -521,14 +543,33 @@ impl CPU
         let bit = value & 0x01;
         let res = (value >> 1) | (bit << 7);
 
-        self.registers.setFlag(Registers::MASK_ZERO_Z, res == 0);
-        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
-        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, false);
-        self.registers.setFlag(Registers::MASK_CARRY_C, bit == 1);
+        self.setRotateFlags(res, bit);
+
+        return res;
+    }
+
+    fn rl(&mut self, value: u8) -> u8
+    {
+        let oldCarry = self.registers.getFlag(Registers::MASK_CARRY_C) as u8;
+        let bit = (value & 0x80) >> 7;
+        let res = (value << 1) | oldCarry;
+
+        self.setRotateFlags(res, bit);
 
         return res;
     }
     
+    fn rr(&mut self, value: u8) -> u8
+    {
+        let oldCarry = self.registers.getFlag(Registers::MASK_CARRY_C) as u8;
+        let bit = value & 0x01;
+        let res = (value >> 1) | (oldCarry << 7);
+
+        self.setRotateFlags(res, bit);
+
+        return res;
+    }
+
     fn rlcAddress(&mut self, bus: &mut Bus, address: u16)
     {
         let val = bus.read(address);
@@ -540,6 +581,20 @@ impl CPU
     {
         let val = bus.read(address);
         let res = self.rrc(val);
+        bus.write(address, res);
+    }
+
+    fn rlAddress(&mut self, bus: &mut Bus, address: u16)
+    {
+        let val = bus.read(address);
+        let res = self.rl(val);
+        bus.write(address, res);
+    }
+
+    fn rrAddress(&mut self, bus: &mut Bus, address: u16)
+    {
+        let val = bus.read(address);
+        let res = self.rr(val);
         bus.write(address, res);
     }
 
@@ -2981,7 +3036,7 @@ impl CPU
 
 
     // RLC [HL] | 2  8 | Z 0 0 C
-    fn rlcAddressHL(&mut self, bus: &mut Bus) -> u8
+    fn rlcAddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.rlcAddress(bus, self.registers.getHl());
         
@@ -3045,7 +3100,7 @@ impl CPU
     }
 
     // RRC [HL] | 2  8 | Z 0 0 C
-    fn rrcAddressHL(&mut self, bus: &mut Bus) -> u8
+    fn rrcAddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.rrcAddress(bus, self.registers.getHl());
         
@@ -3057,6 +3112,135 @@ impl CPU
     {
         self.registers.a = self.rrc(self.registers.a);
         
+        return 8;
+    }
+
+    // RL B | 2  8 | Z 0 0 C
+    fn rlB(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.b = self.rl(self.registers.b);
+
+        return 8;
+    }
+
+    // RL C | 2  8 | Z 0 0 C
+    fn rlC(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.c = self.rl(self.registers.c);
+
+        return 8;
+    }
+
+    // RL D | 2  8 | Z 0 0 C
+    fn rlD(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.d = self.rl(self.registers.d);
+
+        return 8;
+    }
+
+    // RL E | 2  8 | Z 0 0 C
+    fn rlE(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.e = self.rl(self.registers.e);
+
+        return 8;
+    }
+
+    // RL H | 2  8 | Z 0 0 C
+    fn rlH(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.h = self.rl(self.registers.h);
+
+        return 8;
+    }
+
+    // RL L | 2  8 | Z 0 0 C
+    fn rlL(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.l = self.rl(self.registers.l);
+
+        return 8;
+    }
+
+    // RL [HL] | 2  16 | Z 0 0 C
+    fn rlAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.rlAddress(bus, self.registers.getHl());
+        
+        return 16;
+    }
+
+    // RL A | 2  8 | Z 0 0 C
+    fn rlA(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.a = self.rl(self.registers.a);
+
+        return 8;
+    }
+    
+
+    // RR B | 2  8 | Z 0 0 C
+    fn rrB(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.b = self.rr(self.registers.b);
+
+        return 8;
+    }
+
+    // RR C | 2  8 | Z 0 0 C
+    fn rrC(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.c = self.rr(self.registers.c);
+
+        return 8;
+    }
+
+    // RR D | 2  8 | Z 0 0 C
+    fn rrD(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.d = self.rr(self.registers.d);
+
+        return 8;
+    }
+
+    // RR E | 2  8 | Z 0 0 C
+    fn rrE(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.e = self.rr(self.registers.e);
+
+        return 8;
+    }
+
+    // RR H | 2  8 | Z 0 0 C
+    fn rrH(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.h = self.rr(self.registers.h);
+
+        return 8;
+    }
+
+    // RR L | 2  8 | Z 0 0 C
+    fn rrL(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.l = self.rr(self.registers.l);
+
+        return 8;
+    }
+
+    // RR [HL] | 2  16 | Z 0 0 C
+    fn rrAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.rrAddress(bus, self.registers.getHl());
+        
+        return 16;
+    }
+
+    // RR A | 2  8 | Z 0 0 C
+    fn rrA(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.a = self.rr(self.registers.a);
+
         return 8;
     }
 
