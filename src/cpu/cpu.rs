@@ -331,6 +331,23 @@ impl CPU
         cpu.prefixedInstructions[0x1e] = CPU::rrAddressHl;
         cpu.prefixedInstructions[0x1f] = CPU::rrA;
 
+        cpu.prefixedInstructions[0x20] = CPU::slaB;
+        cpu.prefixedInstructions[0x21] = CPU::slaC;
+        cpu.prefixedInstructions[0x22] = CPU::slaD;
+        cpu.prefixedInstructions[0x23] = CPU::slaE;
+        cpu.prefixedInstructions[0x24] = CPU::slaH;
+        cpu.prefixedInstructions[0x25] = CPU::slaL;
+        cpu.prefixedInstructions[0x26] = CPU::slaAddressHl;
+        cpu.prefixedInstructions[0x27] = CPU::slaA;
+        cpu.prefixedInstructions[0x28] = CPU::sraB;
+        cpu.prefixedInstructions[0x29] = CPU::sraC;
+        cpu.prefixedInstructions[0x2a] = CPU::sraD;
+        cpu.prefixedInstructions[0x2b] = CPU::sraE;
+        cpu.prefixedInstructions[0x2c] = CPU::sraH;
+        cpu.prefixedInstructions[0x2d] = CPU::sraL;
+        cpu.prefixedInstructions[0x2e] = CPU::sraAddressHl;
+        cpu.prefixedInstructions[0x2f] = CPU::sraA;
+
         return cpu;
 
     }
@@ -570,6 +587,26 @@ impl CPU
         return res;
     }
 
+    fn sla(&mut self, value: u8) -> u8
+    {
+        let bit = (value & 0x80) >> 7;
+        let res = value << 1;
+
+        self.setRotateFlags(res, bit);
+
+        return res;
+    }
+
+    fn sra(&mut self, value: u8) -> u8
+    {
+        let bit = value & 0x01;
+        let res = value >> 1;
+
+        self.setRotateFlags(res, bit);
+
+        return res;
+    }
+
     fn rlcAddress(&mut self, bus: &mut Bus, address: u16)
     {
         let val = bus.read(address);
@@ -595,6 +632,20 @@ impl CPU
     {
         let val = bus.read(address);
         let res = self.rr(val);
+        bus.write(address, res);
+    }
+
+    fn slaAddress(&mut self, bus: &mut Bus, address: u16)
+    {
+        let val = bus.read(address);
+        let res = self.sla(val);
+        bus.write(address, res);
+    }
+
+    fn sraAddress(&mut self, bus: &mut Bus, address: u16)
+    {
+        let val = bus.read(address);
+        let res = self.sra(val);
         bus.write(address, res);
     }
 
@@ -3240,6 +3291,134 @@ impl CPU
     fn rrA(&mut self, _bus: &mut Bus) -> u8
     {
         self.registers.a = self.rr(self.registers.a);
+
+        return 8;
+    }
+
+    // SLA B | 2  8 | Z 0 0 C
+    fn slaB(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.b = self.sla(self.registers.b);
+
+        return 8;
+    }
+
+    // SLA C | 2  8 | Z 0 0 C
+    fn slaC(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.c = self.sla(self.registers.c);
+
+        return 8;
+    }
+
+    // SLA D | 2  8 | Z 0 0 C
+    fn slaD(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.d = self.sla(self.registers.d);
+
+        return 8;
+    }
+
+    // SLA E | 2  8 | Z 0 0 C
+    fn slaE(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.e = self.sla(self.registers.e);
+
+        return 8;
+    }
+
+    // SLA H | 2  8 | Z 0 0 C
+    fn slaH(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.h = self.sla(self.registers.h);
+
+        return 8;
+    }
+
+    // SLA L | 2  8 | Z 0 0 C
+    fn slaL(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.l = self.sla(self.registers.l);
+
+        return 8;
+    }
+
+    // SLA [HL] | 2  16 | Z 0 0 C
+    fn slaAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.slaAddress(bus, self.registers.getHl());
+        
+        return 16;
+    }
+
+    // SLA A | 2  8 | Z 0 0 C
+    fn slaA(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.a = self.sla(self.registers.a);
+
+        return 8;
+    }
+    
+    // SRA B | 2  8 | Z 0 0 C
+    fn sraB(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.b = self.sra(self.registers.b);
+
+        return 8;
+    }
+
+    // SRA C | 2  8 | Z 0 0 C
+    fn sraC(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.c = self.sra(self.registers.c);
+
+        return 8;
+    }
+
+    // SRA D | 2  8 | Z 0 0 C
+    fn sraD(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.d = self.sra(self.registers.d);
+
+        return 8;
+    }
+
+    // SRA E | 2  8 | Z 0 0 C
+    fn sraE(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.e = self.sra(self.registers.e);
+
+        return 8;
+    }
+
+    // SRA H | 2  8 | Z 0 0 C
+    fn sraH(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.h = self.sra(self.registers.h);
+
+        return 8;
+    }
+
+    // SRA L | 2  8 | Z 0 0 C
+    fn sraL(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.l = self.sra(self.registers.l);
+
+        return 8;
+    }
+
+    // SRA [HL] | 2  16 | Z 0 0 C
+    fn sraAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.sraAddress(bus, self.registers.getHl());
+        
+        return 16;
+    }
+
+    // SRA A | 2  8 | Z 0 0 C
+    fn sraA(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.a = self.sra(self.registers.a);
 
         return 8;
     }

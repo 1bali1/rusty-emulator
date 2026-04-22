@@ -19,7 +19,7 @@ fn main()
     let mut bus = Bus::new();
     let mut cpu = CPU::new();
 
-    let gbName = String::from("f.gb");
+    let gbName = String::from("a.gb");
     bus.loadRom(&gbName);
 
     loop {
