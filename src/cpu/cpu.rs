@@ -1,6 +1,6 @@
 use core::panic;
 
-use crate::bus::Bus;
+use crate::bus::{self, Bus};
 use crate::registers::Registers;
 
 type InstructionFn = fn(&mut CPU, &mut Bus) -> u8;
@@ -348,22 +348,90 @@ impl CPU
         cpu.prefixedInstructions[0x2e] = CPU::sraAddressHl;
         cpu.prefixedInstructions[0x2f] = CPU::sraA;
 
-        cpu.prefixedInstructions[0x20] = CPU::swapB;
-        cpu.prefixedInstructions[0x21] = CPU::swapC;
-        cpu.prefixedInstructions[0x22] = CPU::swapD;
-        cpu.prefixedInstructions[0x23] = CPU::swapE;
-        cpu.prefixedInstructions[0x24] = CPU::swapH;
-        cpu.prefixedInstructions[0x25] = CPU::swapL;
-        cpu.prefixedInstructions[0x26] = CPU::swapAddressHl;
-        cpu.prefixedInstructions[0x27] = CPU::swapA;
-        cpu.prefixedInstructions[0x28] = CPU::srlB;
-        cpu.prefixedInstructions[0x29] = CPU::srlC;
-        cpu.prefixedInstructions[0x2a] = CPU::srlD;
-        cpu.prefixedInstructions[0x2b] = CPU::srlE;
-        cpu.prefixedInstructions[0x2c] = CPU::srlH;
-        cpu.prefixedInstructions[0x2d] = CPU::srlL;
-        cpu.prefixedInstructions[0x2e] = CPU::srlAddressHl;
-        cpu.prefixedInstructions[0x2f] = CPU::srlA;
+        cpu.prefixedInstructions[0x30] = CPU::swapB;
+        cpu.prefixedInstructions[0x31] = CPU::swapC;
+        cpu.prefixedInstructions[0x32] = CPU::swapD;
+        cpu.prefixedInstructions[0x33] = CPU::swapE;
+        cpu.prefixedInstructions[0x34] = CPU::swapH;
+        cpu.prefixedInstructions[0x35] = CPU::swapL;
+        cpu.prefixedInstructions[0x36] = CPU::swapAddressHl;
+        cpu.prefixedInstructions[0x37] = CPU::swapA;
+        cpu.prefixedInstructions[0x38] = CPU::srlB;
+        cpu.prefixedInstructions[0x39] = CPU::srlC;
+        cpu.prefixedInstructions[0x3a] = CPU::srlD;
+        cpu.prefixedInstructions[0x3b] = CPU::srlE;
+        cpu.prefixedInstructions[0x3c] = CPU::srlH;
+        cpu.prefixedInstructions[0x3d] = CPU::srlL;
+        cpu.prefixedInstructions[0x3e] = CPU::srlAddressHl;
+        cpu.prefixedInstructions[0x3f] = CPU::srlA;
+
+        cpu.prefixedInstructions[0x40] = CPU::bit0B;
+        cpu.prefixedInstructions[0x41] = CPU::bit0C;
+        cpu.prefixedInstructions[0x42] = CPU::bit0D;
+        cpu.prefixedInstructions[0x43] = CPU::bit0E;
+        cpu.prefixedInstructions[0x44] = CPU::bit0H;
+        cpu.prefixedInstructions[0x45] = CPU::bit0L;
+        cpu.prefixedInstructions[0x46] = CPU::bit0AddressHl;
+        cpu.prefixedInstructions[0x47] = CPU::bit0A;
+        cpu.prefixedInstructions[0x48] = CPU::bit1B;
+        cpu.prefixedInstructions[0x49] = CPU::bit1C;
+        cpu.prefixedInstructions[0x4a] = CPU::bit1D;
+        cpu.prefixedInstructions[0x4b] = CPU::bit1E;
+        cpu.prefixedInstructions[0x4c] = CPU::bit1H;
+        cpu.prefixedInstructions[0x4d] = CPU::bit1L;
+        cpu.prefixedInstructions[0x4e] = CPU::bit1AddressHl;
+        cpu.prefixedInstructions[0x4f] = CPU::bit1A;
+
+        cpu.prefixedInstructions[0x50] = CPU::bit2B;
+        cpu.prefixedInstructions[0x51] = CPU::bit2C;
+        cpu.prefixedInstructions[0x52] = CPU::bit2D;
+        cpu.prefixedInstructions[0x53] = CPU::bit2E;
+        cpu.prefixedInstructions[0x54] = CPU::bit2H;
+        cpu.prefixedInstructions[0x55] = CPU::bit2L;
+        cpu.prefixedInstructions[0x56] = CPU::bit2AddressHl;
+        cpu.prefixedInstructions[0x57] = CPU::bit2A;
+        cpu.prefixedInstructions[0x58] = CPU::bit3B;
+        cpu.prefixedInstructions[0x59] = CPU::bit3C;
+        cpu.prefixedInstructions[0x5a] = CPU::bit3D;
+        cpu.prefixedInstructions[0x5b] = CPU::bit3E;
+        cpu.prefixedInstructions[0x5c] = CPU::bit3H;
+        cpu.prefixedInstructions[0x5d] = CPU::bit3L;
+        cpu.prefixedInstructions[0x5e] = CPU::bit3AddressHl;
+        cpu.prefixedInstructions[0x5f] = CPU::bit3A;
+        
+        cpu.prefixedInstructions[0x60] = CPU::bit4B;
+        cpu.prefixedInstructions[0x61] = CPU::bit4C;
+        cpu.prefixedInstructions[0x62] = CPU::bit4D;
+        cpu.prefixedInstructions[0x63] = CPU::bit4E;
+        cpu.prefixedInstructions[0x64] = CPU::bit4H;
+        cpu.prefixedInstructions[0x65] = CPU::bit4L;
+        cpu.prefixedInstructions[0x66] = CPU::bit4AddressHl;
+        cpu.prefixedInstructions[0x67] = CPU::bit4A;
+        cpu.prefixedInstructions[0x68] = CPU::bit5B;
+        cpu.prefixedInstructions[0x69] = CPU::bit5C;
+        cpu.prefixedInstructions[0x6a] = CPU::bit5D;
+        cpu.prefixedInstructions[0x6b] = CPU::bit5E;
+        cpu.prefixedInstructions[0x6c] = CPU::bit5H;
+        cpu.prefixedInstructions[0x6d] = CPU::bit5L;
+        cpu.prefixedInstructions[0x6e] = CPU::bit5AddressHl;
+        cpu.prefixedInstructions[0x6f] = CPU::bit5A;
+
+        cpu.prefixedInstructions[0x70] = CPU::bit6B;
+        cpu.prefixedInstructions[0x71] = CPU::bit6C;
+        cpu.prefixedInstructions[0x72] = CPU::bit6D;
+        cpu.prefixedInstructions[0x73] = CPU::bit6E;
+        cpu.prefixedInstructions[0x74] = CPU::bit6H;
+        cpu.prefixedInstructions[0x75] = CPU::bit6L;
+        cpu.prefixedInstructions[0x76] = CPU::bit6AddressHl;
+        cpu.prefixedInstructions[0x77] = CPU::bit6A;
+        cpu.prefixedInstructions[0x78] = CPU::bit7B;
+        cpu.prefixedInstructions[0x79] = CPU::bit7C;
+        cpu.prefixedInstructions[0x7a] = CPU::bit7D;
+        cpu.prefixedInstructions[0x7b] = CPU::bit7E;
+        cpu.prefixedInstructions[0x7c] = CPU::bit7H;
+        cpu.prefixedInstructions[0x7d] = CPU::bit7L;
+        cpu.prefixedInstructions[0x7e] = CPU::bit7AddressHl;
+        cpu.prefixedInstructions[0x7f] = CPU::bit7A;
 
 
         return cpu;
@@ -635,6 +703,15 @@ impl CPU
         return res;
     }
 
+    fn bit(&mut self, value: u8, index: u8)
+    {
+        let bit = (value >> index) & 0x01;
+
+        self.registers.setFlag(Registers::MASK_ZERO_Z, bit == 0);
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, true);
+    }
+
     fn rlcAddress(&mut self, bus: &mut Bus, address: u16)
     {
         let val = bus.read(address);
@@ -682,6 +759,12 @@ impl CPU
         let val = bus.read(address);
         let res = self.srl(val);
         bus.write(address, res);
+    }
+
+    fn bitAddress(&mut self, bus: &mut Bus, address: u16, index: u8)
+    {
+        let val = bus.read(address);
+        self.bit(val, index);
     }
 
     fn swap(&mut self, value: u8) -> u8
@@ -3607,6 +3690,510 @@ impl CPU
         return 8;
     }
 
+    // BIT 0, B | 2  8 | Z 0 1 -
+    fn bit0B(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.b, 0);
+
+        return 8;
+    }
+    // BIT 0, C | 2  8 | Z 0 1 -
+    fn bit0C(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.c, 0);
+        
+        return 8;
+    }
+
+    // BIT 0, D | 2  8 | Z 0 1 -
+    fn bit0D(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.d, 0);
+
+        return 8;
+    }
+
+    // BIT 0, E | 2  8 | Z 0 1 -
+    fn bit0E(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.e, 0);
+        
+        return 8;
+    }
+
+    // BIT 0, H | 2  8 | Z 0 1 -
+    fn bit0H(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.h, 0);
+
+        return 8;
+    }
+    
+    // BIT 0, L | 2  8 | Z 0 1 -
+    fn bit0L(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.l, 0);
+        
+        return 8;
+    }
+
+    // BIT 0, [HL] | 2  12 | Z 0 1 -
+    fn bit0AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.bitAddress(bus, self.registers.getHl(), 0);
+        
+        return 12;
+    }
+
+    // BIT 0, A | 2  8 | Z 0 1 -
+    fn bit0A(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.a, 0);
+        
+        return 8;
+    }
+
+
+    // BIT 1, B | 2  8 | Z 0 1 -
+    fn bit1B(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.b, 1);
+
+        return 8;
+    }
+    // BIT 1, C | 2  8 | Z 0 1 -
+    fn bit1C(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.c, 1);
+        
+        return 8;
+    }
+
+    // BIT 1, D | 2  8 | Z 0 1 -
+    fn bit1D(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.d, 1);
+
+        return 8;
+    }
+
+    // BIT 1, E | 2  8 | Z 0 1 -
+    fn bit1E(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.e, 1);
+        
+        return 8;
+    }
+
+    // BIT 1, H | 2  8 | Z 0 1 -
+    fn bit1H(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.h, 1);
+
+        return 8;
+    }
+    
+    // BIT 1, L | 2  8 | Z 0 1 -
+    fn bit1L(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.l, 1);
+        
+        return 8;
+    }
+
+    // BIT 1, [HL] | 2  12 | Z 0 1 -
+    fn bit1AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.bitAddress(bus, self.registers.getHl(), 1);
+        
+        return 12;
+    }
+
+    // BIT 1, A | 2  8 | Z 0 1 -
+    fn bit1A(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.a, 1);
+        
+        return 8;
+    }
+
+    // BIT 2, B | 2  8 | Z 0 1 -
+    fn bit2B(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.b, 2);
+
+        return 8;
+    }
+    // BIT 2, C | 2  8 | Z 0 1 -
+    fn bit2C(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.c, 2);
+        
+        return 8;
+    }
+
+    // BIT 2, D | 2  8 | Z 0 1 -
+    fn bit2D(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.d, 2);
+
+        return 8;
+    }
+
+    // BIT 2, E | 2  8 | Z 0 1 -
+    fn bit2E(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.e, 2);
+        
+        return 8;
+    }
+
+    // BIT 2, H | 2  8 | Z 0 1 -
+    fn bit2H(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.h, 2);
+
+        return 8;
+    }
+    
+    // BIT 2, L | 2  8 | Z 0 1 -
+    fn bit2L(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.l, 2);
+        
+        return 8;
+    }
+
+    // BIT 2, [HL] | 2  12 | Z 0 1 -
+    fn bit2AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.bitAddress(bus, self.registers.getHl(), 2);
+        
+        return 12;
+    }
+
+    // BIT 2, A | 2  8 | Z 0 1 -
+    fn bit2A(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.a, 2);
+        
+        return 8;
+    }
+
+    // BIT 3, B | 2  8 | Z 0 1 -
+    fn bit3B(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.b, 3);
+
+        return 8;
+    }
+    // BIT 3, C | 2  8 | Z 0 1 -
+    fn bit3C(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.c, 3);
+        
+        return 8;
+    }
+
+    // BIT 3, D | 2  8 | Z 0 1 -
+    fn bit3D(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.d, 3);
+
+        return 8;
+    }
+
+    // BIT 3, E | 2  8 | Z 0 1 -
+    fn bit3E(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.e, 3);
+        
+        return 8;
+    }
+
+    // BIT 3, H | 2  8 | Z 0 1 -
+    fn bit3H(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.h, 3);
+
+        return 8;
+    }
+    
+    // BIT 3, L | 2  8 | Z 0 1 -
+    fn bit3L(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.l, 3);
+        
+        return 8;
+    }
+
+    // BIT 3, [HL] | 2  12 | Z 0 1 -
+    fn bit3AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.bitAddress(bus, self.registers.getHl(), 3);
+        
+        return 12;
+    }
+
+    // BIT 3, A | 2  8 | Z 0 1 -
+    fn bit3A(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.a, 3);
+        
+        return 8;
+    }
+
+    // BIT 4, B | 2  8 | Z 0 1 -
+    fn bit4B(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.b, 4);
+
+        return 8;
+    }
+    // BIT 4, C | 2  8 | Z 0 1 -
+    fn bit4C(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.c, 4);
+        
+        return 8;
+    }
+
+    // BIT 4, D | 2  8 | Z 0 1 -
+    fn bit4D(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.d, 4);
+
+        return 8;
+    }
+
+    // BIT 4, E | 2  8 | Z 0 1 -
+    fn bit4E(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.e, 4);
+        
+        return 8;
+    }
+
+    // BIT 4, H | 2  8 | Z 0 1 -
+    fn bit4H(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.h, 4);
+
+        return 8;
+    }
+    
+    // BIT 4, L | 2  8 | Z 0 1 -
+    fn bit4L(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.l, 4);
+        
+        return 8;
+    }
+
+    // BIT 4, [HL] | 2  12 | Z 0 1 -
+    fn bit4AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.bitAddress(bus, self.registers.getHl(), 4);
+        
+        return 12;
+    }
+
+    // BIT 4, A | 2  8 | Z 0 1 -
+    fn bit4A(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.a, 4);
+        
+        return 8;
+    }
+
+    // BIT 5, B | 2  8 | Z 0 1 -
+    fn bit5B(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.b, 5);
+
+        return 8;
+    }
+    // BIT 5, C | 2  8 | Z 0 1 -
+    fn bit5C(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.c, 5);
+        
+        return 8;
+    }
+
+    // BIT 5, D | 2  8 | Z 0 1 -
+    fn bit5D(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.d, 5);
+
+        return 8;
+    }
+
+    // BIT 5, E | 2  8 | Z 0 1 -
+    fn bit5E(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.e, 5);
+        
+        return 8;
+    }
+
+    // BIT 5, H | 2  8 | Z 0 1 -
+    fn bit5H(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.h, 5);
+
+        return 8;
+    }
+    
+    // BIT 5, L | 2  8 | Z 0 1 -
+    fn bit5L(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.l, 5);
+        
+        return 8;
+    }
+
+    // BIT 5, [HL] | 2  12 | Z 0 1 -
+    fn bit5AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.bitAddress(bus, self.registers.getHl(), 5);
+        
+        return 12;
+    }
+
+    // BIT 5, A | 2  8 | Z 0 1 -
+    fn bit5A(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.a, 5);
+        
+        return 8;
+    }
+
+    // BIT 6, B | 2  8 | Z 0 1 -
+    fn bit6B(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.b, 6);
+
+        return 8;
+    }
+    // BIT 6, C | 2  8 | Z 0 1 -
+    fn bit6C(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.c, 6);
+        
+        return 8;
+    }
+
+    // BIT 6, D | 2  8 | Z 0 1 -
+    fn bit6D(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.d, 6);
+
+        return 8;
+    }
+
+    // BIT 6, E | 2  8 | Z 0 1 -
+    fn bit6E(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.e, 6);
+        
+        return 8;
+    }
+
+    // BIT 6, H | 2  8 | Z 0 1 -
+    fn bit6H(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.h, 6);
+
+        return 8;
+    }
+    
+    // BIT 6, L | 2  8 | Z 0 1 -
+    fn bit6L(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.l, 6);
+        
+        return 8;
+    }
+
+    // BIT 6, [HL] | 2  12 | Z 0 1 -
+    fn bit6AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.bitAddress(bus, self.registers.getHl(), 6);
+        
+        return 12;
+    }
+
+    // BIT 6, A | 2  8 | Z 0 1 -
+    fn bit6A(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.a, 6);
+        
+        return 8;
+    }
+
+    // BIT 7, B | 2  8 | Z 0 1 -
+    fn bit7B(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.b, 7);
+
+        return 8;
+    }
+    // BIT 7, C | 2  8 | Z 0 1 -
+    fn bit7C(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.c, 7);
+        
+        return 8;
+    }
+
+    // BIT 7, D | 2  8 | Z 0 1 -
+    fn bit7D(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.d, 7);
+
+        return 8;
+    }
+
+    // BIT 7, E | 2  8 | Z 0 1 -
+    fn bit7E(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.e, 7);
+        
+        return 8;
+    }
+
+    // BIT 7, H | 2  8 | Z 0 1 -
+    fn bit7H(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.h, 7);
+
+        return 8;
+    }
+    
+    // BIT 7, L | 2  8 | Z 0 1 -
+    fn bit7L(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.l, 7);
+        
+        return 8;
+    }
+
+    // BIT 7, [HL] | 2  12 | Z 0 1 -
+    fn bit7AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.bitAddress(bus, self.registers.getHl(), 7);
+        
+        return 12;
+    }
+
+    // BIT 7, A | 2  8 | Z 0 1 -
+    fn bit7A(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.bit(self.registers.a, 7);
+        
+        return 8;
+    }
 
     fn execute(&mut self, opcode: u8, bus: &mut Bus)
     {
