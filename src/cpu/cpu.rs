@@ -1,6 +1,6 @@
 use core::panic;
 
-use crate::bus::{self, Bus};
+use crate::bus::Bus;
 use crate::registers::Registers;
 
 type InstructionFn = fn(&mut CPU, &mut Bus) -> u8;
@@ -43,6 +43,7 @@ impl CPU
         cpu.instructions[0x0f] = CPU::rrca;
         
         // 0x10
+        cpu.instructions[0x10] = CPU::notImplemented;
         cpu.instructions[0x11] = CPU::ldDe;
         cpu.instructions[0x12] = CPU::ldDeAddressA;
         cpu.instructions[0x13] = CPU::incDe;
@@ -433,6 +434,142 @@ impl CPU
         cpu.prefixedInstructions[0x7e] = CPU::bit7AddressHl;
         cpu.prefixedInstructions[0x7f] = CPU::bit7A;
 
+        cpu.prefixedInstructions[0x80] = CPU::res0B;
+        cpu.prefixedInstructions[0x81] = CPU::res0C;
+        cpu.prefixedInstructions[0x82] = CPU::res0D;
+        cpu.prefixedInstructions[0x83] = CPU::res0E;
+        cpu.prefixedInstructions[0x84] = CPU::res0H;
+        cpu.prefixedInstructions[0x85] = CPU::res0L;
+        cpu.prefixedInstructions[0x86] = CPU::res0AddressHl;
+        cpu.prefixedInstructions[0x87] = CPU::res0A;
+        cpu.prefixedInstructions[0x88] = CPU::res1B;
+        cpu.prefixedInstructions[0x89] = CPU::res1C;
+        cpu.prefixedInstructions[0x8a] = CPU::res1D;
+        cpu.prefixedInstructions[0x8b] = CPU::res1E;
+        cpu.prefixedInstructions[0x8c] = CPU::res1H;
+        cpu.prefixedInstructions[0x8d] = CPU::res1L;
+        cpu.prefixedInstructions[0x8e] = CPU::res1AddressHl;
+        cpu.prefixedInstructions[0x8f] = CPU::res1A;
+
+        cpu.prefixedInstructions[0x90] = CPU::res2B;
+        cpu.prefixedInstructions[0x91] = CPU::res2C;
+        cpu.prefixedInstructions[0x92] = CPU::res2D;
+        cpu.prefixedInstructions[0x93] = CPU::res2E;
+        cpu.prefixedInstructions[0x94] = CPU::res2H;
+        cpu.prefixedInstructions[0x95] = CPU::res2L;
+        cpu.prefixedInstructions[0x96] = CPU::res2AddressHl;
+        cpu.prefixedInstructions[0x97] = CPU::res2A;
+        cpu.prefixedInstructions[0x98] = CPU::res3B;
+        cpu.prefixedInstructions[0x99] = CPU::res3C;
+        cpu.prefixedInstructions[0x9a] = CPU::res3D;
+        cpu.prefixedInstructions[0x9b] = CPU::res3E;
+        cpu.prefixedInstructions[0x9c] = CPU::res3H;
+        cpu.prefixedInstructions[0x9d] = CPU::res3L;
+        cpu.prefixedInstructions[0x9e] = CPU::res3AddressHl;
+        cpu.prefixedInstructions[0x9f] = CPU::res3A;
+        
+        cpu.prefixedInstructions[0xa0] = CPU::res4B;
+        cpu.prefixedInstructions[0xa1] = CPU::res4C;
+        cpu.prefixedInstructions[0xa2] = CPU::res4D;
+        cpu.prefixedInstructions[0xa3] = CPU::res4E;
+        cpu.prefixedInstructions[0xa4] = CPU::res4H;
+        cpu.prefixedInstructions[0xa5] = CPU::res4L;
+        cpu.prefixedInstructions[0xa6] = CPU::res4AddressHl;
+        cpu.prefixedInstructions[0xa7] = CPU::res4A;
+        cpu.prefixedInstructions[0xa8] = CPU::res5B;
+        cpu.prefixedInstructions[0xa9] = CPU::res5C;
+        cpu.prefixedInstructions[0xaa] = CPU::res5D;
+        cpu.prefixedInstructions[0xab] = CPU::res5E;
+        cpu.prefixedInstructions[0xac] = CPU::res5H;
+        cpu.prefixedInstructions[0xad] = CPU::res5L;
+        cpu.prefixedInstructions[0xae] = CPU::res5AddressHl;
+        cpu.prefixedInstructions[0xaf] = CPU::res5A;
+
+        cpu.prefixedInstructions[0xb0] = CPU::res6B;
+        cpu.prefixedInstructions[0xb1] = CPU::res6C;
+        cpu.prefixedInstructions[0xb2] = CPU::res6D;
+        cpu.prefixedInstructions[0xb3] = CPU::res6E;
+        cpu.prefixedInstructions[0xb4] = CPU::res6H;
+        cpu.prefixedInstructions[0xb5] = CPU::res6L;
+        cpu.prefixedInstructions[0xb6] = CPU::res6AddressHl;
+        cpu.prefixedInstructions[0xb7] = CPU::res6A;
+        cpu.prefixedInstructions[0xb8] = CPU::res7B;
+        cpu.prefixedInstructions[0xb9] = CPU::res7C;
+        cpu.prefixedInstructions[0xba] = CPU::res7D;
+        cpu.prefixedInstructions[0xbb] = CPU::res7E;
+        cpu.prefixedInstructions[0xbc] = CPU::res7H;
+        cpu.prefixedInstructions[0xbd] = CPU::res7L;
+        cpu.prefixedInstructions[0xbe] = CPU::res7AddressHl;
+        cpu.prefixedInstructions[0xbf] = CPU::res7A;
+
+        cpu.prefixedInstructions[0xc0] = CPU::set0B;
+        cpu.prefixedInstructions[0xc1] = CPU::set0C;
+        cpu.prefixedInstructions[0xc2] = CPU::set0D;
+        cpu.prefixedInstructions[0xc3] = CPU::set0E;
+        cpu.prefixedInstructions[0xc4] = CPU::set0H;
+        cpu.prefixedInstructions[0xc5] = CPU::set0L;
+        cpu.prefixedInstructions[0xc6] = CPU::set0AddressHl;
+        cpu.prefixedInstructions[0xc7] = CPU::set0A;
+        cpu.prefixedInstructions[0xc8] = CPU::set1B;
+        cpu.prefixedInstructions[0xc9] = CPU::set1C;
+        cpu.prefixedInstructions[0xca] = CPU::set1D;
+        cpu.prefixedInstructions[0xcb] = CPU::set1E;
+        cpu.prefixedInstructions[0xcc] = CPU::set1H;
+        cpu.prefixedInstructions[0xcd] = CPU::set1L;
+        cpu.prefixedInstructions[0xce] = CPU::set1AddressHl;
+        cpu.prefixedInstructions[0xcf] = CPU::set1A;
+
+        cpu.prefixedInstructions[0xd0] = CPU::set2B;
+        cpu.prefixedInstructions[0xd1] = CPU::set2C;
+        cpu.prefixedInstructions[0xd2] = CPU::set2D;
+        cpu.prefixedInstructions[0xd3] = CPU::set2E;
+        cpu.prefixedInstructions[0xd4] = CPU::set2H;
+        cpu.prefixedInstructions[0xd5] = CPU::set2L;
+        cpu.prefixedInstructions[0xd6] = CPU::set2AddressHl;
+        cpu.prefixedInstructions[0xd7] = CPU::set2A;
+        cpu.prefixedInstructions[0xd8] = CPU::set3B;
+        cpu.prefixedInstructions[0xd9] = CPU::set3C;
+        cpu.prefixedInstructions[0xda] = CPU::set3D;
+        cpu.prefixedInstructions[0xdb] = CPU::set3E;
+        cpu.prefixedInstructions[0xdc] = CPU::set3H;
+        cpu.prefixedInstructions[0xdd] = CPU::set3L;
+        cpu.prefixedInstructions[0xde] = CPU::set3AddressHl;
+        cpu.prefixedInstructions[0xdf] = CPU::set3A;
+        
+        cpu.prefixedInstructions[0xe0] = CPU::set4B;
+        cpu.prefixedInstructions[0xe1] = CPU::set4C;
+        cpu.prefixedInstructions[0xe2] = CPU::set4D;
+        cpu.prefixedInstructions[0xe3] = CPU::set4E;
+        cpu.prefixedInstructions[0xe4] = CPU::set4H;
+        cpu.prefixedInstructions[0xe5] = CPU::set4L;
+        cpu.prefixedInstructions[0xe6] = CPU::set4AddressHl;
+        cpu.prefixedInstructions[0xe7] = CPU::set4A;
+        cpu.prefixedInstructions[0xe8] = CPU::set5B;
+        cpu.prefixedInstructions[0xe9] = CPU::set5C;
+        cpu.prefixedInstructions[0xea] = CPU::set5D;
+        cpu.prefixedInstructions[0xeb] = CPU::set5E;
+        cpu.prefixedInstructions[0xec] = CPU::set5H;
+        cpu.prefixedInstructions[0xed] = CPU::set5L;
+        cpu.prefixedInstructions[0xee] = CPU::set5AddressHl;
+        cpu.prefixedInstructions[0xef] = CPU::set5A;
+
+        cpu.prefixedInstructions[0xf0] = CPU::set6B;
+        cpu.prefixedInstructions[0xf1] = CPU::set6C;
+        cpu.prefixedInstructions[0xf2] = CPU::set6D;
+        cpu.prefixedInstructions[0xf3] = CPU::set6E;
+        cpu.prefixedInstructions[0xf4] = CPU::set6H;
+        cpu.prefixedInstructions[0xf5] = CPU::set6L;
+        cpu.prefixedInstructions[0xf6] = CPU::set6AddressHl;
+        cpu.prefixedInstructions[0xf7] = CPU::set6A;
+        cpu.prefixedInstructions[0xf8] = CPU::set7B;
+        cpu.prefixedInstructions[0xf9] = CPU::set7C;
+        cpu.prefixedInstructions[0xfa] = CPU::set7D;
+        cpu.prefixedInstructions[0xfb] = CPU::set7E;
+        cpu.prefixedInstructions[0xfc] = CPU::set7H;
+        cpu.prefixedInstructions[0xfd] = CPU::set7L;
+        cpu.prefixedInstructions[0xfe] = CPU::set7AddressHl;
+        cpu.prefixedInstructions[0xff] = CPU::set7A;
+
 
         return cpu;
 
@@ -444,11 +581,10 @@ impl CPU
         if self.isHalted
         {
             panic!("Halt");
-            return;
         }
 
         let opcode = self.fetch(bus);
-
+        
         self.execute(opcode, bus);
     }
 
@@ -533,18 +669,19 @@ impl CPU
     {
         let carry = if withCarry { self.registers.getFlag(Registers::MASK_CARRY_C) as u8 } else { 0 };
 
-        let sum = num1.wrapping_sub(num2).wrapping_sub(carry);
+        let res = (num1 as i16).wrapping_sub(num2 as i16).wrapping_sub(carry as i16);
 
-        self.registers.setFlag(Registers::MASK_ZERO_Z, sum == 0);
+        self.registers.setFlag(Registers::MASK_ZERO_Z, (res as u8) == 0);
         self.registers.setFlag(Registers::MASK_SUBTRACT_N, true);
 
-        let halfCarried = ((num1 as i32) & 0x0f) - ((num2 as i32) & 0x0f) - (carry as i32) < 0;
+        let halfCarried = (num1 & 0x0f) < (num2 & 0x0f) + carry;
         self.registers.setFlag(Registers::MASK_HALF_CARRY_H, halfCarried);
 
-        let carried = (num1 as i32) - (num2 as i32) - (carry as i32) < 0;
+
+        let carried = (num1 as u16) < (num2 as u16) + (carry as u16);
         self.registers.setFlag(Registers::MASK_CARRY_C, carried);
 
-        return sum;
+        return res as u8;
     }
 
     fn and(&mut self, num1: u8, num2: u8) -> u8
@@ -712,6 +849,20 @@ impl CPU
         self.registers.setFlag(Registers::MASK_HALF_CARRY_H, true);
     }
 
+    fn resBit(&mut self, value: u8, index: u8) -> u8
+    {
+        let res = value & !(1 << index);
+
+        return res;
+    }
+
+    fn setBit(&mut self, value: u8, index: u8) -> u8
+    {
+        let res = value | (1 << index);
+
+        return res;
+    }
+
     fn rlcAddress(&mut self, bus: &mut Bus, address: u16)
     {
         let val = bus.read(address);
@@ -765,6 +916,20 @@ impl CPU
     {
         let val = bus.read(address);
         self.bit(val, index);
+    }
+
+    fn resBitAddress(&mut self, bus: &mut Bus, address: u16, index: u8)
+    {
+        let val = bus.read(address);
+        let res = self.resBit(val, index);
+        bus.write(address, res);
+    }
+
+    fn setBitAddress(&mut self, bus: &mut Bus, address: u16, index: u8)
+    {
+        let val = bus.read(address);
+        let res = self.setBit(val, index);
+        bus.write(address, res);
     }
 
     fn swap(&mut self, value: u8) -> u8
@@ -1159,7 +1324,7 @@ impl CPU
         let oldCarry = self.registers.getFlag(Registers::MASK_CARRY_C) as u8;
         let newCarry = (alu & 0x01) != 0;
 
-        self.registers.a = (alu >> 7) | (oldCarry << 7);
+        self.registers.a = (alu >> 1) | (oldCarry << 7);
 
         self.registers.setFlag(Registers::MASK_ZERO_Z, false);
         self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
@@ -1269,7 +1434,7 @@ impl CPU
     fn decHl(&mut self, _bus: &mut Bus) -> u8
     {
         let hl = self.registers.getHl();
-        let val = hl.wrapping_sub(hl);
+        let val = hl.wrapping_sub(1);
 
         self.registers.setHl(val);
 
@@ -2914,7 +3079,7 @@ impl CPU
 
         self.callFn(bus, targetAddress);
 
-        return 16;
+        return 24;
     }
 
     // SBC A, n8 | 2  8 | Z 1 H C
@@ -3225,7 +3390,7 @@ impl CPU
     }
 
 
-    // RLC [HL] | 2  8 | Z 0 0 C
+    // RLC [HL] | 2  16 | Z 0 0 C
     fn rlcAddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.rlcAddress(bus, self.registers.getHl());
@@ -4191,6 +4356,1128 @@ impl CPU
     fn bit7A(&mut self, _bus: &mut Bus) -> u8
     {
         self.bit(self.registers.a, 7);
+        
+        return 8;
+    }
+
+    // RES 0, B | 2  8 | - - - -
+    fn res0B(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.b, 0);
+        self.registers.b = val;
+
+        return 8;
+    }
+    // RES 0, C | 2  8 | - - - -
+    fn res0C(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.c, 0);
+        self.registers.c = val;
+        
+        return 8;
+    }
+
+    // RES 0, D | 2  8 | - - - -
+    fn res0D(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.d, 0);
+        self.registers.d = val;
+
+        return 8;
+    }
+
+    // RES 0, E | 2  8 | - - - -
+    fn res0E(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.e, 0);
+        self.registers.e = val;
+        
+        return 8;
+    }
+
+    // RES 0, H | 2  8 | - - - -
+    fn res0H(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.h, 0);
+        self.registers.h = val;
+
+        return 8;
+    }
+    
+    // RES 0, L | 2  8 | - - - -
+    fn res0L(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.l, 0);
+        self.registers.l = val;
+        
+        return 8;
+    }
+
+    // RES 0, [HL] | 2  12 | - - - -
+    fn res0AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.resBitAddress(bus, self.registers.getHl(), 0);
+        
+        return 12;
+    }
+
+    // RES 0, A | 2  8 | - - - -
+    fn res0A(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.a, 0);
+        self.registers.a = val;
+
+        return 8;
+    }
+
+
+    // RES 1, B | 2  8 | - - - -
+    fn res1B(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.b, 1);
+        self.registers.b = val;
+
+        return 8;
+    }
+    // RES 1, C | 2  8 | - - - -
+    fn res1C(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.c, 1);
+        self.registers.c = val;
+        
+        return 8;
+    }
+
+    // RES 1, D | 2  8 | - - - -
+    fn res1D(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.d, 1);
+        self.registers.d = val;
+
+        return 8;
+    }
+
+    // RES 1, E | 2  8 | - - - -
+    fn res1E(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.e, 1);
+        self.registers.e = val;
+        
+        return 8;
+    }
+
+    // RES 1, H | 2  8 | - - - -
+    fn res1H(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.h, 1);
+        self.registers.h = val;
+
+        return 8;
+    }
+    
+    // RES 1, L | 2  8 | - - - -
+    fn res1L(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.l, 1);
+        self.registers.l = val;
+        
+        return 8;
+    }
+
+    // RES 1, [HL] | 2  12 | - - - -
+    fn res1AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.resBitAddress(bus, self.registers.getHl(), 1);
+        
+        return 12;
+    }
+
+    // RES 1, A | 2  8 | - - - -
+    fn res1A(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.a, 1);
+        self.registers.a = val;
+        
+        return 8;
+    }
+
+    // RES 2, B | 2  8 | - - - -
+    fn res2B(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.b, 2);
+        self.registers.b = val;
+
+        return 8;
+    }
+    // RES 2, C | 2  8 | - - - -
+    fn res2C(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.c, 2);
+        self.registers.c = val;
+        
+        return 8;
+    }
+
+    // RES 2, D | 2  8 | - - - -
+    fn res2D(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.d, 2);
+        self.registers.d = val;
+
+        return 8;
+    }
+
+    // RES 2, E | 2  8 | - - - -
+    fn res2E(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.e, 2);
+        self.registers.e = val;
+        
+        return 8;
+    }
+
+    // RES 2, H | 2  8 | - - - -
+    fn res2H(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.h, 2);
+        self.registers.h = val;
+
+        return 8;
+    }
+    
+    // RES 2, L | 2  8 | - - - -
+    fn res2L(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.l, 2);
+        self.registers.l = val;
+        
+        return 8;
+    }
+
+    // RES 2, [HL] | 2  12 | - - - -
+    fn res2AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.resBitAddress(bus, self.registers.getHl(), 2);
+        
+        return 12;
+    }
+
+    // RES 2, A | 2  8 | - - - -
+    fn res2A(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.a, 2);
+        self.registers.a = val;
+        
+        return 8;
+    }
+
+    // RES 3, B | 2  8 | - - - -
+    fn res3B(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.b, 3);
+        self.registers.b = val;
+
+        return 8;
+    }
+    // RES 3, C | 2  8 | - - - -
+    fn res3C(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.c, 3);
+        self.registers.c = val;
+        
+        return 8;
+    }
+
+    // RES 3, D | 2  8 | - - - -
+    fn res3D(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.d, 3);
+        self.registers.d = val;
+
+        return 8;
+    }
+
+    // RES 3, E | 2  8 | - - - -
+    fn res3E(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.e, 3);
+        self.registers.e = val;
+        
+        return 8;
+    }
+
+    // RES 3, H | 2  8 | - - - -
+    fn res3H(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.h, 3);
+        self.registers.h = val;
+
+        return 8;
+    }
+    
+    // RES 3, L | 2  8 | - - - -
+    fn res3L(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.l, 3);
+        self.registers.l = val;
+        
+        return 8;
+    }
+
+    // RES 3, [HL] | 2  12 | - - - -
+    fn res3AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.resBitAddress(bus, self.registers.getHl(), 3);
+        
+        return 12;
+    }
+
+    // RES 3, A | 2  8 | - - - -
+    fn res3A(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.a, 3);
+        self.registers.a = val;
+        
+        return 8;
+    }
+
+    // RES 4, B | 2  8 | - - - -
+    fn res4B(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.b, 4);
+        self.registers.b = val;
+
+        return 8;
+    }
+    // RES 4, C | 2  8 | - - - -
+    fn res4C(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.c, 4);
+        self.registers.c = val;
+        
+        return 8;
+    }
+
+    // RES 4, D | 2  8 | - - - -
+    fn res4D(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.d, 4);
+        self.registers.d = val;
+
+        return 8;
+    }
+
+    // RES 4, E | 2  8 | - - - -
+    fn res4E(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.e, 4);
+        self.registers.e = val;
+        
+        return 8;
+    }
+
+    // RES 4, H | 2  8 | - - - -
+    fn res4H(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.h, 4);
+        self.registers.h = val;
+
+        return 8;
+    }
+    
+    // RES 4, L | 2  8 | - - - -
+    fn res4L(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.l, 4);
+        self.registers.l = val;
+        
+        return 8;
+    }
+
+    // RES 4, [HL] | 2  12 | - - - -
+    fn res4AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.resBitAddress(bus, self.registers.getHl(), 4);
+        
+        return 12;
+    }
+
+    // RES 4, A | 2  8 | - - - -
+    fn res4A(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.a, 4);
+        self.registers.a = val;
+        
+        return 8;
+    }
+
+    // RES 5, B | 2  8 | - - - -
+    fn res5B(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.b, 5);
+        self.registers.b = val;
+
+        return 8;
+    }
+    // RES 5, C | 2  8 | - - - -
+    fn res5C(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.c, 5);
+        self.registers.c = val;
+        
+        return 8;
+    }
+
+    // RES 5, D | 2  8 | - - - -
+    fn res5D(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.d, 5);
+        self.registers.d = val;
+
+        return 8;
+    }
+
+    // RES 5, E | 2  8 | - - - -
+    fn res5E(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.e, 5);
+        self.registers.e = val;
+        
+        return 8;
+    }
+
+    // RES 5, H | 2  8 | - - - -
+    fn res5H(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.h, 5);
+        self.registers.h = val;
+
+        return 8;
+    }
+    
+    // RES 5, L | 2  8 | - - - -
+    fn res5L(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.l, 5);
+        self.registers.l = val;
+        
+        return 8;
+    }
+
+    // RES 5, [HL] | 2  12 | - - - -
+    fn res5AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.resBitAddress(bus, self.registers.getHl(), 5);
+        
+        return 12;
+    }
+
+    // RES 5, A | 2  8 | - - - -
+    fn res5A(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.a, 5);
+        self.registers.a = val;
+        
+        return 8;
+    }
+
+    // RES 6, B | 2  8 | - - - -
+    fn res6B(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.b, 6);
+        self.registers.b = val;
+
+        return 8;
+    }
+    // RES 6, C | 2  8 | - - - -
+    fn res6C(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.c, 6);
+        self.registers.c = val;
+        
+        return 8;
+    }
+
+    // RES 6, D | 2  8 | - - - -
+    fn res6D(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.d, 6);
+        self.registers.d = val;
+
+        return 8;
+    }
+
+    // RES 6, E | 2  8 | - - - -
+    fn res6E(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.e, 6);
+        self.registers.e = val;
+
+        return 8;
+    }
+
+    // RES 6, H | 2  8 | - - - -
+    fn res6H(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.h, 6);
+        self.registers.h = val;
+
+        return 8;
+    }
+    
+    // RES 6, L | 2  8 | - - - -
+    fn res6L(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.l, 6);
+        self.registers.l = val;
+        
+        return 8;
+    }
+
+    // RES 6, [HL] | 2  12 | - - - -
+    fn res6AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.resBitAddress(bus, self.registers.getHl(), 6);
+        
+        return 12;
+    }
+
+    // RES 6, A | 2  8 | - - - -
+    fn res6A(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.a, 6);
+        self.registers.a = val;
+        
+        return 8;
+    }
+
+    // RES 7, B | 2  8 | - - - -
+    fn res7B(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.b, 7);
+        self.registers.b = val;
+
+        return 8;
+    }
+    // RES 7, C | 2  8 | - - - -
+    fn res7C(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.c, 7);
+        self.registers.c = val;
+        
+        return 8;
+    }
+
+    // RES 7, D | 2  8 | - - - -
+    fn res7D(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.d, 7);
+        self.registers.d = val;
+
+        return 8;
+    }
+
+    // RES 7, E | 2  8 | - - - -
+    fn res7E(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.e, 7);
+        self.registers.e = val;
+        
+        return 8;
+    }
+
+    // RES 7, H | 2  8 | - - - -
+    fn res7H(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.h, 7);
+        self.registers.h = val;
+
+        return 8;
+    }
+    
+    // RES 7, L | 2  8 | - - - -
+    fn res7L(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.l, 7);
+        self.registers.l = val;
+        
+        return 8;
+    }
+
+    // RES 7, [HL] | 2  12 | - - - -
+    fn res7AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.resBitAddress(bus, self.registers.getHl(), 7);
+        
+        return 12;
+    }
+
+    // RES 7, A | 2  8 | - - - -
+    fn res7A(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.resBit(self.registers.a, 7);
+        self.registers.a = val;
+        
+        return 8;
+    }
+
+    // SET 0, B | 2  8 | - - - -
+    fn set0B(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.b, 0);
+        self.registers.b = val;
+
+        return 8;
+    }
+    // SET 0, C | 2  8 | - - - -
+    fn set0C(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.c, 0);
+        self.registers.c = val;
+        
+        return 8;
+    }
+
+    // SET 0, D | 2  8 | - - - -
+    fn set0D(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.d, 0);
+        self.registers.d = val;
+
+        return 8;
+    }
+
+    // SET 0, E | 2  8 | - - - -
+    fn set0E(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.e, 0);
+        self.registers.e = val;
+        
+        return 8;
+    }
+
+    // SET 0, H | 2  8 | - - - -
+    fn set0H(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.h, 0);
+        self.registers.h = val;
+
+        return 8;
+    }
+    
+    // SET 0, L | 2  8 | - - - -
+    fn set0L(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.l, 0);
+        self.registers.l = val;
+        
+        return 8;
+    }
+
+    // SET 0, [HL] | 2  12 | - - - -
+    fn set0AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.setBitAddress(bus, self.registers.getHl(), 0);
+        
+        return 12;
+    }
+
+    // SET 0, A | 2  8 | - - - -
+    fn set0A(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.a, 0);
+        self.registers.a = val;
+        
+        return 8;
+    }
+
+
+    // SET 1, B | 2  8 | - - - -
+    fn set1B(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.b, 1);
+        self.registers.b = val;
+
+        return 8;
+    }
+    // SET 1, C | 2  8 | - - - -
+    fn set1C(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.c, 1);
+        self.registers.c = val;
+        
+        return 8;
+    }
+
+    // SET 1, D | 2  8 | - - - -
+    fn set1D(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.d, 1);
+        self.registers.d = val;
+
+        return 8;
+    }
+
+    // SET 1, E | 2  8 | - - - -
+    fn set1E(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.e, 1);
+        self.registers.e = val;
+        
+        return 8;
+    }
+
+    // SET 1, H | 2  8 | - - - -
+    fn set1H(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.h, 1);
+        self.registers.h = val;
+
+        return 8;
+    }
+    
+    // SET 1, L | 2  8 | - - - -
+    fn set1L(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.l, 1);
+        self.registers.l = val;
+        
+        return 8;
+    }
+
+    // SET 1, [HL] | 2  12 | - - - -
+    fn set1AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.setBitAddress(bus, self.registers.getHl(), 1);
+        
+        return 12;
+    }
+
+    // SET 1, A | 2  8 | - - - -
+    fn set1A(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.a, 1);
+        self.registers.a = val;
+        
+        return 8;
+    }
+
+    // SET 2, B | 2  8 | - - - -
+    fn set2B(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.b, 2);
+        self.registers.b = val;
+
+        return 8;
+    }
+    // SET 2, C | 2  8 | - - - -
+    fn set2C(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.c, 2);
+        self.registers.c = val;
+        
+        return 8;
+    }
+
+    // SET 2, D | 2  8 | - - - -
+    fn set2D(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.d, 2);
+        self.registers.d = val;
+
+        return 8;
+    }
+
+    // SET 2, E | 2  8 | - - - -
+    fn set2E(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.e, 2);
+        self.registers.e = val;
+        
+        return 8;
+    }
+
+    // SET 2, H | 2  8 | - - - -
+    fn set2H(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.h, 2);
+        self.registers.h = val;
+
+        return 8;
+    }
+    
+    // SET 2, L | 2  8 | - - - -
+    fn set2L(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.l, 2);
+        self.registers.l = val;
+        
+        return 8;
+    }
+
+    // SET 2, [HL] | 2  12 | - - - -
+    fn set2AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.setBitAddress(bus, self.registers.getHl(), 2);
+        
+        return 12;
+    }
+
+    // SET 2, A | 2  8 | - - - -
+    fn set2A(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.a, 2);
+        self.registers.a = val;
+        
+        return 8;
+    }
+
+    // SET 3, B | 2  8 | - - - -
+    fn set3B(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.b, 3);
+        self.registers.b = val;
+
+        return 8;
+    }
+    // SET 3, C | 2  8 | - - - -
+    fn set3C(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.c, 3);
+        self.registers.c = val;
+        
+        return 8;
+    }
+
+    // SET 3, D | 2  8 | - - - -
+    fn set3D(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.d, 3);
+        self.registers.d = val;
+
+        return 8;
+    }
+
+    // SET 3, E | 2  8 | - - - -
+    fn set3E(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.e, 3);
+        self.registers.e = val;
+        
+        return 8;
+    }
+
+    // SET 3, H | 2  8 | - - - -
+    fn set3H(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.h, 3);
+        self.registers.h = val;
+
+        return 8;
+    }
+    
+    // SET 3, L | 2  8 | - - - -
+    fn set3L(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.l, 3);
+        self.registers.l = val;
+        
+        return 8;
+    }
+
+    // SET 3, [HL] | 2  12 | - - - -
+    fn set3AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.setBitAddress(bus, self.registers.getHl(), 3);
+        
+        return 12;
+    }
+
+    // SET 3, A | 2  8 | - - - -
+    fn set3A(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.a, 3);
+        self.registers.a = val;
+        
+        return 8;
+    }
+
+    // SET 4, B | 2  8 | - - - -
+    fn set4B(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.b, 4);
+        self.registers.b = val;
+
+        return 8;
+    }
+    // SET 4, C | 2  8 | - - - -
+    fn set4C(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.c, 4);
+        self.registers.c = val;
+        
+        return 8;
+    }
+
+    // SET 4, D | 2  8 | - - - -
+    fn set4D(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.d, 4);
+        self.registers.d = val;
+
+        return 8;
+    }
+
+    // SET 4, E | 2  8 | - - - -
+    fn set4E(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.e, 4);
+        self.registers.e = val;
+        
+        return 8;
+    }
+
+    // SET 4, H | 2  8 | - - - -
+    fn set4H(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.h, 4);
+        self.registers.h = val;
+
+        return 8;
+    }
+    
+    // SET 4, L | 2  8 | - - - -
+    fn set4L(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.l, 4);
+        self.registers.l = val;
+        
+        return 8;
+    }
+
+    // SET 4, [HL] | 2  12 | - - - -
+    fn set4AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.setBitAddress(bus, self.registers.getHl(), 4);
+        
+        return 12;
+    }
+
+    // SET 4, A | 2  8 | - - - -
+    fn set4A(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.a, 4);
+        self.registers.a = val;
+        
+        return 8;
+    }
+
+    // SET 5, B | 2  8 | - - - -
+    fn set5B(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.b, 5);
+        self.registers.b = val;
+
+        return 8;
+    }
+    // SET 5, C | 2  8 | - - - -
+    fn set5C(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.c, 5);
+        self.registers.c = val;
+        
+        return 8;
+    }
+
+    // SET 5, D | 2  8 | - - - -
+    fn set5D(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.d, 5);
+        self.registers.d = val;
+
+        return 8;
+    }
+
+    // SET 5, E | 2  8 | - - - -
+    fn set5E(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.e, 5);
+        self.registers.e = val;
+        
+        return 8;
+    }
+
+    // SET 5, H | 2  8 | - - - -
+    fn set5H(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.h, 5);
+        self.registers.h = val;
+
+        return 8;
+    }
+    
+    // SET 5, L | 2  8 | - - - -
+    fn set5L(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.l, 5);
+        self.registers.l = val;
+        
+        return 8;
+    }
+
+    // SET 5, [HL] | 2  12 | - - - -
+    fn set5AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.setBitAddress(bus, self.registers.getHl(), 5);
+        
+        return 12;
+    }
+
+    // SET 5, A | 2  8 | - - - -
+    fn set5A(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.a, 5);
+        self.registers.a = val;
+        
+        return 8;
+    }
+
+    // SET 6, B | 2  8 | - - - -
+    fn set6B(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.b, 6);
+        self.registers.b = val;
+
+        return 8;
+    }
+    // SET 6, C | 2  8 | - - - -
+    fn set6C(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.c, 6);
+        self.registers.c = val;
+        
+        return 8;
+    }
+
+    // SET 6, D | 2  8 | - - - -
+    fn set6D(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.d, 6);
+        self.registers.d = val;
+
+        return 8;
+    }
+
+    // SET 6, E | 2  8 | - - - -
+    fn set6E(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.e, 6);
+        self.registers.e = val;
+        
+        return 8;
+    }
+
+    // SET 6, H | 2  8 | - - - -
+    fn set6H(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.h, 6);
+        self.registers.h = val;
+
+        return 8;
+    }
+    
+    // SET 6, L | 2  8 | - - - -
+    fn set6L(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.l, 6);
+        self.registers.l = val;
+        
+        return 8;
+    }
+
+    // SET 6, [HL] | 2  12 | - - - -
+    fn set6AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.setBitAddress(bus, self.registers.getHl(), 6);
+        
+        return 12;
+    }
+
+    // SET 6, A | 2  8 | - - - -
+    fn set6A(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.a, 6);
+        self.registers.a = val;
+        
+        return 8;
+    }
+
+    // SET 7, B | 2  8 | - - - -
+    fn set7B(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.b, 7);
+        self.registers.b = val;
+
+        return 8;
+    }
+    // SET 7, C | 2  8 | - - - -
+    fn set7C(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.c, 7);
+        self.registers.c = val;
+        
+        return 8;
+    }
+
+    // SET 7, D | 2  8 | - - - -
+    fn set7D(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.d, 7);
+        self.registers.d = val;
+
+        return 8;
+    }
+
+    // SET 7, E | 2  8 | - - - -
+    fn set7E(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.e, 7);
+        self.registers.e = val;
+        
+        return 8;
+    }
+
+    // SET 7, H | 2  8 | - - - -
+    fn set7H(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.h, 7);
+        self.registers.h = val;
+
+        return 8;
+    }
+    
+    // SET 7, L | 2  8 | - - - -
+    fn set7L(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.l, 7);
+        self.registers.l = val;
+        
+        return 8;
+    }
+
+    // SET 7, [HL] | 2  12 | - - - -
+    fn set7AddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.setBitAddress(bus, self.registers.getHl(), 7);
+        
+        return 12;
+    }
+
+    // SET 7, A | 2  8 | - - - -
+    fn set7A(&mut self, _bus: &mut Bus) -> u8
+    {
+        let val = self.setBit(self.registers.a, 7);
+        self.registers.a = val;
         
         return 8;
     }

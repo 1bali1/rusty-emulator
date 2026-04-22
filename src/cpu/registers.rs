@@ -20,7 +20,7 @@ impl Registers
     pub fn new() -> Self
     {
         Self {
-            a: 0x01, f: 0xb0, // nem fix h ez az
+            a: 0x01, f: 0xb0,
             b: 0x00, c: 0x13,
             d: 0x00, e: 0xd8,
             h: 0x01, l: 0x4d,

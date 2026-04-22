@@ -12,14 +12,12 @@ use cpu::CPU;
 use crate::registers::Registers;
 
 
-
-
 fn main() 
 {
     let mut bus = Bus::new();
     let mut cpu = CPU::new();
 
-    let gbName = String::from("a.gb");
+    let gbName = String::from("k.gb");
     bus.loadRom(&gbName);
 
     loop {
