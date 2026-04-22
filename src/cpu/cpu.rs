@@ -348,6 +348,24 @@ impl CPU
         cpu.prefixedInstructions[0x2e] = CPU::sraAddressHl;
         cpu.prefixedInstructions[0x2f] = CPU::sraA;
 
+        cpu.prefixedInstructions[0x20] = CPU::swapB;
+        cpu.prefixedInstructions[0x21] = CPU::swapC;
+        cpu.prefixedInstructions[0x22] = CPU::swapD;
+        cpu.prefixedInstructions[0x23] = CPU::swapE;
+        cpu.prefixedInstructions[0x24] = CPU::swapH;
+        cpu.prefixedInstructions[0x25] = CPU::swapL;
+        cpu.prefixedInstructions[0x26] = CPU::swapAddressHl;
+        cpu.prefixedInstructions[0x27] = CPU::swapA;
+        cpu.prefixedInstructions[0x28] = CPU::srlB;
+        cpu.prefixedInstructions[0x29] = CPU::srlC;
+        cpu.prefixedInstructions[0x2a] = CPU::srlD;
+        cpu.prefixedInstructions[0x2b] = CPU::srlE;
+        cpu.prefixedInstructions[0x2c] = CPU::srlH;
+        cpu.prefixedInstructions[0x2d] = CPU::srlL;
+        cpu.prefixedInstructions[0x2e] = CPU::srlAddressHl;
+        cpu.prefixedInstructions[0x2f] = CPU::srlA;
+
+
         return cpu;
 
     }
@@ -600,6 +618,16 @@ impl CPU
     fn sra(&mut self, value: u8) -> u8
     {
         let bit = value & 0x01;
+        let res = (value >> 1) | value & 0x80;
+
+        self.setRotateFlags(res, bit);
+
+        return res;
+    }
+
+    fn srl(&mut self, value: u8) -> u8
+    {
+        let bit = value & 0x01;
         let res = value >> 1;
 
         self.setRotateFlags(res, bit);
@@ -646,6 +674,34 @@ impl CPU
     {
         let val = bus.read(address);
         let res = self.sra(val);
+        bus.write(address, res);
+    }
+
+    fn srlAddress(&mut self, bus: &mut Bus, address: u16)
+    {
+        let val = bus.read(address);
+        let res = self.srl(val);
+        bus.write(address, res);
+    }
+
+    fn swap(&mut self, value: u8) -> u8
+    {
+        let low = value & 0xf;
+        let high = value >> 4;
+        let res = high | (low << 4);
+
+        self.registers.setFlag(Registers::MASK_ZERO_Z, res == 0);
+        self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
+        self.registers.setFlag(Registers::MASK_HALF_CARRY_H, false);
+        self.registers.setFlag(Registers::MASK_CARRY_C, false);
+
+        return res;
+    }
+
+    fn swapAddress(&mut self, bus: &mut Bus, address: u16)
+    {
+        let val = bus.read(address);
+        let res = self.swap(val);
         bus.write(address, res);
     }
 
@@ -3419,6 +3475,134 @@ impl CPU
     fn sraA(&mut self, _bus: &mut Bus) -> u8
     {
         self.registers.a = self.sra(self.registers.a);
+
+        return 8;
+    }
+
+    // SWAP B | 2  8 | Z 0 0 0
+    fn swapB(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.b = self.swap(self.registers.b);
+
+        return 8;
+    }
+
+    // SWAP C | 2  8 | Z 0 0 0
+    fn swapC(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.c = self.swap(self.registers.c);
+
+        return 8;
+    }
+
+    // SWAP D | 2  8 | Z 0 0 0
+    fn swapD(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.d = self.swap(self.registers.d);
+
+        return 8;
+    }
+
+    // SWAP E | 2  8 | Z 0 0 0
+    fn swapE(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.e = self.swap(self.registers.e);
+
+        return 8;
+    }
+
+    // SWAP H | 2  8 | Z 0 0 0
+    fn swapH(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.h = self.swap(self.registers.h);
+
+        return 8;
+    }
+
+    // SWAP L | 2  8 | Z 0 0 0
+    fn swapL(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.l = self.swap(self.registers.l);
+
+        return 8;
+    }
+
+    // SWAP [HL] | 2  16 | Z 0 0 0
+    fn swapAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.swapAddress(bus, self.registers.getHl());
+        
+        return 16;
+    }
+
+    // SWAP A | 2  8 | Z 0 0 0
+    fn swapA(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.a = self.swap(self.registers.a);
+
+        return 8;
+    }
+
+    // SRL B | 2  8 | Z 0 0 C
+    fn srlB(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.b = self.srl(self.registers.b);
+
+        return 8;
+    }
+
+    // SRL C | 2  8 | Z 0 0 C
+    fn srlC(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.c = self.srl(self.registers.c);
+
+        return 8;
+    }
+
+    // SRL D | 2  8 | Z 0 0 C
+    fn srlD(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.d = self.srl(self.registers.d);
+
+        return 8;
+    }
+
+    // SRL E | 2  8 | Z 0 0 C
+    fn srlE(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.e = self.srl(self.registers.e);
+
+        return 8;
+    }
+
+    // SRL H | 2  8 | Z 0 0 C
+    fn srlH(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.h = self.srl(self.registers.h);
+
+        return 8;
+    }
+
+    // SRL L | 2  8 | Z 0 0 C
+    fn srlL(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.l = self.srl(self.registers.l);
+
+        return 8;
+    }
+
+    // SRL [HL] | 2  16 | Z 0 0 C
+    fn srlAddressHl(&mut self, bus: &mut Bus) -> u8
+    {
+        self.srlAddress(bus, self.registers.getHl());
+        
+        return 16;
+    }
+
+    // SRL A | 2  8 | Z 0 0 C
+    fn srlA(&mut self, _bus: &mut Bus) -> u8
+    {
+        self.registers.a = self.srl(self.registers.a);
 
         return 8;
     }
