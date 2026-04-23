@@ -1,15 +1,22 @@
 use core::panic;
-
+use std::ops::Add;
 use crate::bus::Bus;
 use crate::registers::Registers;
 
 type InstructionFn = fn(&mut CPU, &mut Bus) -> u8;
 
+#[derive(PartialEq)]
+pub enum ImeState {
+    Disabled,
+    Enabled,
+    EnableNext,
+}
+
 pub struct CPU
 {
     pub registers: Registers,
     pub isHalted: bool,
-    pub imeFlag: bool,
+    imeState: ImeState,
     instructions: [InstructionFn; 256],
     prefixedInstructions: [InstructionFn; 256]
 }
@@ -21,7 +28,7 @@ impl CPU
         let mut cpu = CPU {
             registers: Registers::new(),
             isHalted: false,
-            imeFlag: false,
+            imeState: ImeState::Disabled,
             instructions: [CPU::nop; 256],
             prefixedInstructions: [CPU::nop; 256]
         };
@@ -576,16 +583,78 @@ impl CPU
     }
 
     pub fn step(&mut self, bus: &mut Bus)
-    {  
-        // TODO: impl interrupts + ticks
-        if self.isHalted
+    {
+        if self.handleInterrupts(bus)
         {
-            panic!("Halt");
+            bus.timer.tick(16);
+            return;
         }
 
-        let opcode = self.fetch(bus);
+        if self.imeState == ImeState::EnableNext { self.imeState = ImeState::Enabled; }
+
+        let cycles = if self.isHalted { 4 } else { self.execute(bus) };
+
+
+        bus.timer.tick(cycles);
+
+        if bus.timer.shouldInterrupt
+        {
+            let ifFlag = bus.getIf();
+            bus.setIf(ifFlag | 0x04);
+
+            bus.timer.shouldInterrupt = false;
+        }
+    }
+
+    fn handleInterrupts(&mut self, bus: &mut Bus) -> bool
+    {
+        let intr = bus.getIe() & bus.getIf() & 0x1f;
+
+        if intr == 0 
+        {
+            return false;
+        }
+
+        self.isHalted = false;
+
+        if self.imeState == ImeState::Enabled
+        {
+            for bitIndex in 0..5
+            {
+                if intr & (1 << bitIndex) != 0
+                {
+                    self.executeInterrupt(bus, bitIndex);
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    fn executeInterrupt(&mut self, bus: &mut Bus, bitIndex: u8)
+    {
+        self.isHalted = false;
+        self.imeState = ImeState::Disabled;
         
-        self.execute(opcode, bus);
+
+        let ifVal = bus.getIf();
+        let deletedIf = ifVal & !(1 << bitIndex);
+        
+        bus.setIf(deletedIf);
+
+        self.pushU16(bus, self.registers.pc.wrapping_add(1));
+
+        let byte = match bitIndex {
+           0 => 0x0040, // VBLANK
+           1 => 0x0048, // LCD
+           2 => 0x0050, // Timer
+           3 => 0x0058, // Serial
+           4 => 0x0060, // Joypad
+           _ => panic!("Interrupt failed!")
+        };
+
+        self.registers.pc = byte;
     }
 
     fn fetch(&mut self, bus: &mut Bus) -> u8
@@ -3040,10 +3109,10 @@ impl CPU
     }
 
     // RETI | 1  16 | - - - -
-    // TODO: impl interrupts
     fn reti(&mut self, bus: &mut Bus) -> u8
     {
         self.registers.pc = self.popU16(bus);
+        self.imeState = ImeState::Enabled;
 
         return 16;
     }
@@ -3246,7 +3315,7 @@ impl CPU
     // DI | 1  4 | - - - -
     fn di(&mut self, _bus: &mut Bus) -> u8
     {
-        self.imeFlag = false;
+        self.imeState = ImeState::Disabled;
 
         return 4;
     }
@@ -3319,7 +3388,7 @@ impl CPU
     // EI | 1  4 | - - - -
     fn ei(&mut self, _bus: &mut Bus) -> u8
     {
-        self.imeFlag = true;
+        self.imeState = ImeState::EnableNext;
 
         return 4;
     }
@@ -4413,12 +4482,12 @@ impl CPU
         return 8;
     }
 
-    // RES 0, [HL] | 2  12 | - - - -
+    // RES 0, [HL] | 2  16 | - - - -
     fn res0AddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.resBitAddress(bus, self.registers.getHl(), 0);
         
-        return 12;
+        return 16;
     }
 
     // RES 0, A | 2  8 | - - - -
@@ -4484,12 +4553,12 @@ impl CPU
         return 8;
     }
 
-    // RES 1, [HL] | 2  12 | - - - -
+    // RES 1, [HL] | 2  16 | - - - -
     fn res1AddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.resBitAddress(bus, self.registers.getHl(), 1);
         
-        return 12;
+        return 16;
     }
 
     // RES 1, A | 2  8 | - - - -
@@ -4554,12 +4623,12 @@ impl CPU
         return 8;
     }
 
-    // RES 2, [HL] | 2  12 | - - - -
+    // RES 2, [HL] | 2  16 | - - - -
     fn res2AddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.resBitAddress(bus, self.registers.getHl(), 2);
         
-        return 12;
+        return 16;
     }
 
     // RES 2, A | 2  8 | - - - -
@@ -4624,12 +4693,12 @@ impl CPU
         return 8;
     }
 
-    // RES 3, [HL] | 2  12 | - - - -
+    // RES 3, [HL] | 2  16 | - - - -
     fn res3AddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.resBitAddress(bus, self.registers.getHl(), 3);
         
-        return 12;
+        return 16;
     }
 
     // RES 3, A | 2  8 | - - - -
@@ -4694,12 +4763,12 @@ impl CPU
         return 8;
     }
 
-    // RES 4, [HL] | 2  12 | - - - -
+    // RES 4, [HL] | 2  16 | - - - -
     fn res4AddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.resBitAddress(bus, self.registers.getHl(), 4);
         
-        return 12;
+        return 16;
     }
 
     // RES 4, A | 2  8 | - - - -
@@ -4764,12 +4833,12 @@ impl CPU
         return 8;
     }
 
-    // RES 5, [HL] | 2  12 | - - - -
+    // RES 5, [HL] | 2  16 | - - - -
     fn res5AddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.resBitAddress(bus, self.registers.getHl(), 5);
         
-        return 12;
+        return 16;
     }
 
     // RES 5, A | 2  8 | - - - -
@@ -4834,12 +4903,12 @@ impl CPU
         return 8;
     }
 
-    // RES 6, [HL] | 2  12 | - - - -
+    // RES 6, [HL] | 2  16 | - - - -
     fn res6AddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.resBitAddress(bus, self.registers.getHl(), 6);
         
-        return 12;
+        return 16;
     }
 
     // RES 6, A | 2  8 | - - - -
@@ -4904,12 +4973,12 @@ impl CPU
         return 8;
     }
 
-    // RES 7, [HL] | 2  12 | - - - -
+    // RES 7, [HL] | 2  16 | - - - -
     fn res7AddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.resBitAddress(bus, self.registers.getHl(), 7);
         
-        return 12;
+        return 16;
     }
 
     // RES 7, A | 2  8 | - - - -
@@ -4974,12 +5043,12 @@ impl CPU
         return 8;
     }
 
-    // SET 0, [HL] | 2  12 | - - - -
+    // SET 0, [HL] | 2  16 | - - - -
     fn set0AddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.setBitAddress(bus, self.registers.getHl(), 0);
         
-        return 12;
+        return 16;
     }
 
     // SET 0, A | 2  8 | - - - -
@@ -5045,12 +5114,12 @@ impl CPU
         return 8;
     }
 
-    // SET 1, [HL] | 2  12 | - - - -
+    // SET 1, [HL] | 2  16 | - - - -
     fn set1AddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.setBitAddress(bus, self.registers.getHl(), 1);
         
-        return 12;
+        return 16;
     }
 
     // SET 1, A | 2  8 | - - - -
@@ -5115,12 +5184,12 @@ impl CPU
         return 8;
     }
 
-    // SET 2, [HL] | 2  12 | - - - -
+    // SET 2, [HL] | 2  16 | - - - -
     fn set2AddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.setBitAddress(bus, self.registers.getHl(), 2);
         
-        return 12;
+        return 16;
     }
 
     // SET 2, A | 2  8 | - - - -
@@ -5185,12 +5254,12 @@ impl CPU
         return 8;
     }
 
-    // SET 3, [HL] | 2  12 | - - - -
+    // SET 3, [HL] | 2  16 | - - - -
     fn set3AddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.setBitAddress(bus, self.registers.getHl(), 3);
         
-        return 12;
+        return 16;
     }
 
     // SET 3, A | 2  8 | - - - -
@@ -5255,12 +5324,12 @@ impl CPU
         return 8;
     }
 
-    // SET 4, [HL] | 2  12 | - - - -
+    // SET 4, [HL] | 2  16 | - - - -
     fn set4AddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.setBitAddress(bus, self.registers.getHl(), 4);
         
-        return 12;
+        return 16;
     }
 
     // SET 4, A | 2  8 | - - - -
@@ -5325,12 +5394,12 @@ impl CPU
         return 8;
     }
 
-    // SET 5, [HL] | 2  12 | - - - -
+    // SET 5, [HL] | 2  16 | - - - -
     fn set5AddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.setBitAddress(bus, self.registers.getHl(), 5);
         
-        return 12;
+        return 16;
     }
 
     // SET 5, A | 2  8 | - - - -
@@ -5395,12 +5464,12 @@ impl CPU
         return 8;
     }
 
-    // SET 6, [HL] | 2  12 | - - - -
+    // SET 6, [HL] | 2  16 | - - - -
     fn set6AddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.setBitAddress(bus, self.registers.getHl(), 6);
         
-        return 12;
+        return 16;
     }
 
     // SET 6, A | 2  8 | - - - -
@@ -5465,12 +5534,12 @@ impl CPU
         return 8;
     }
 
-    // SET 7, [HL] | 2  12 | - - - -
+    // SET 7, [HL] | 2  16 | - - - -
     fn set7AddressHl(&mut self, bus: &mut Bus) -> u8
     {
         self.setBitAddress(bus, self.registers.getHl(), 7);
         
-        return 12;
+        return 16;
     }
 
     // SET 7, A | 2  8 | - - - -
@@ -5482,9 +5551,12 @@ impl CPU
         return 8;
     }
 
-    fn execute(&mut self, opcode: u8, bus: &mut Bus)
+    fn execute(&mut self, bus: &mut Bus) -> u8
     {
-        let _clockCycle = self.instructions[opcode as usize](self, bus);
+        let opcode = self.fetch(bus);
+        let clockCycle = self.instructions[opcode as usize](self, bus);
+
+        return clockCycle;
     }
 
     // NOP | 1  4

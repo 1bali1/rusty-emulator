@@ -1,28 +1,51 @@
 use std::{fs::File, io::Read};
 use std::io::{self, Write};
+
+use crate::timer::Timer;
+
 pub struct Bus 
 {
-    pub memory: [u8; 0x10000]
+    pub memory: [u8; 0x10000],
+    pub timer: Timer
 }
 
 impl Bus 
 {
     pub fn new() -> Self
     {
+        let timer = Timer::new();
+
         Self { 
-            memory: [0; 0x10000] 
+            memory: [0; 0x10000], 
+            timer: timer
         }
     }
 
     pub fn read(&self, address: u16) -> u8
     {
-        return self.memory[address as usize]
+        let val = match address
+        {
+            0xff04 => (self.timer.div >> 8) as u8,
+            0xff05 => self.timer.tima,
+            0xff06 => self.timer.tma,
+            0xff07 => self.timer.tac | 0xf8,
+            _ => self.memory[address as usize]
+        };
+
+        return val;
     }
 
     pub fn write(&mut self, address: u16, value: u8)
     {
-        self.memory[address as usize] = value;
-        
+        match address 
+        {
+            0xff04 => self.timer.div = 0,
+            0xff05 => self.timer.tima = value,
+            0xff06 => self.timer.tma = value,
+            0xff07 => self.timer.tac = value,
+            _ => self.memory[address as usize] = value
+        }
+
         if address == 0xff01 || address == 0xff02
         {
             print!("{}", value as char);
@@ -30,7 +53,7 @@ impl Bus
             return;
         }
 
-/*         if address < 0x8000 
+        /* if address < 0x8000 
         {
             return;
         } */
@@ -55,4 +78,20 @@ impl Bus
 
         println!("ROM has loaded successfully!")
     }
+
+    pub fn getIe(&self) -> u8
+    {
+        return self.read(0xffff);
+    }
+
+    pub fn getIf(&self) -> u8
+    {
+        return self.read(0xff0f);
+    }
+
+    pub fn setIf(&mut self, value: u8)
+    {
+        self.write(0xff0f, value);
+    }
+
 }
