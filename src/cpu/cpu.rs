@@ -50,7 +50,7 @@ impl CPU
         cpu.instructions[0x0f] = CPU::rrca;
         
         // 0x10
-        cpu.instructions[0x10] = CPU::notImplemented;
+        cpu.instructions[0x10] = CPU::nop;
         cpu.instructions[0x11] = CPU::ldDe;
         cpu.instructions[0x12] = CPU::ldDeAddressA;
         cpu.instructions[0x13] = CPU::incDe;
@@ -577,7 +577,6 @@ impl CPU
         cpu.prefixedInstructions[0xfe] = CPU::set7AddressHl;
         cpu.prefixedInstructions[0xff] = CPU::set7A;
 
-
         return cpu;
 
     }
@@ -591,7 +590,7 @@ impl CPU
 
             bus.timer.shouldInterrupt = false;
         }
-        
+
         if self.handleInterrupts(bus)
         {
             bus.timer.tick(16);
@@ -602,7 +601,6 @@ impl CPU
 
         let cycles = if self.isHalted { 4 } else { self.execute(bus) };
 
-
         bus.timer.tick(cycles);
     }
 
@@ -610,16 +608,10 @@ impl CPU
     {
         let intr = bus.getIe() & bus.getIf() & 0x1f;
 
-        if intr != 0 
-        { 
-            self.isHalted = false;
-        }
+        if intr != 0 { self.isHalted = false; }
+        
+        if intr == 0 || self.imeState != ImeState::Enabled { return false; }
 
-        if intr == 0 || self.imeState != ImeState::Enabled 
-        {
-            return false;
-        }
-     
         for bitIndex in 0..5
         {
             if intr & (1 << bitIndex) != 0
@@ -636,7 +628,6 @@ impl CPU
     {
         self.isHalted = false;
         self.imeState = ImeState::Disabled;
-        
 
         let ifVal = bus.getIf();
         let deletedIf = ifVal & !(1 << bitIndex);
@@ -1044,7 +1035,6 @@ impl CPU
     fn incBc(&mut self, _bus: &mut Bus) -> u8
     {
         let val = self.registers.getBc();
-
         self.registers.setBc(val.wrapping_add(1));
 
         return 8;
@@ -2159,6 +2149,7 @@ impl CPU
     // HALT | 1  4 | - - - -
     fn halt(&mut self, _bus: &mut Bus) -> u8
     {
+        println!("Halted");
         self.isHalted = true;
 
         return 4;
@@ -3315,10 +3306,7 @@ impl CPU
     // DI | 1  4 | - - - -
     fn di(&mut self, _bus: &mut Bus) -> u8
     {
-        if self.imeState != ImeState::EnableNext
-        {
-            self.imeState = ImeState::Disabled;
-        }
+        self.imeState = ImeState::Disabled;
 
         return 4;
     }

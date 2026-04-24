@@ -86,7 +86,7 @@ impl Bus
 
     pub fn getIf(&self) -> u8
     {
-        return self.read(0xff0f) | 0xe0;
+        return self.read(0xff0f);
     }
 
     pub fn setIf(&mut self, value: u8)
