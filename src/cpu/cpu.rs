@@ -1,11 +1,11 @@
 use core::panic;
-use std::ops::Add;
 use crate::bus::Bus;
 use crate::registers::Registers;
 
 type InstructionFn = fn(&mut CPU, &mut Bus) -> u8;
 
 #[derive(PartialEq)]
+#[derive(Debug)]
 pub enum ImeState {
     Disabled,
     Enabled,
@@ -16,7 +16,7 @@ pub struct CPU
 {
     pub registers: Registers,
     pub isHalted: bool,
-    imeState: ImeState,
+    pub imeState: ImeState,
     instructions: [InstructionFn; 256],
     prefixedInstructions: [InstructionFn; 256]
 }
@@ -584,6 +584,14 @@ impl CPU
 
     pub fn step(&mut self, bus: &mut Bus)
     {
+        if bus.timer.shouldInterrupt
+        {
+            let ifFlag = bus.getIf();
+            bus.setIf(ifFlag | 0x04);
+
+            bus.timer.shouldInterrupt = false;
+        }
+        
         if self.handleInterrupts(bus)
         {
             bus.timer.tick(16);
@@ -596,36 +604,28 @@ impl CPU
 
 
         bus.timer.tick(cycles);
-
-        if bus.timer.shouldInterrupt
-        {
-            let ifFlag = bus.getIf();
-            bus.setIf(ifFlag | 0x04);
-
-            bus.timer.shouldInterrupt = false;
-        }
     }
 
     fn handleInterrupts(&mut self, bus: &mut Bus) -> bool
     {
         let intr = bus.getIe() & bus.getIf() & 0x1f;
 
-        if intr == 0 
+        if intr != 0 
+        { 
+            self.isHalted = false;
+        }
+
+        if intr == 0 || self.imeState != ImeState::Enabled 
         {
             return false;
         }
-
-        self.isHalted = false;
-
-        if self.imeState == ImeState::Enabled
+     
+        for bitIndex in 0..5
         {
-            for bitIndex in 0..5
+            if intr & (1 << bitIndex) != 0
             {
-                if intr & (1 << bitIndex) != 0
-                {
-                    self.executeInterrupt(bus, bitIndex);
-                    return true;
-                }
+                self.executeInterrupt(bus, bitIndex);
+                return true;
             }
         }
 
@@ -643,7 +643,7 @@ impl CPU
         
         bus.setIf(deletedIf);
 
-        self.pushU16(bus, self.registers.pc.wrapping_add(1));
+        self.pushU16(bus, self.registers.pc);
 
         let byte = match bitIndex {
            0 => 0x0040, // VBLANK
@@ -3315,7 +3315,10 @@ impl CPU
     // DI | 1  4 | - - - -
     fn di(&mut self, _bus: &mut Bus) -> u8
     {
-        self.imeState = ImeState::Disabled;
+        if self.imeState != ImeState::EnableNext
+        {
+            self.imeState = ImeState::Disabled;
+        }
 
         return 4;
     }
@@ -3388,8 +3391,11 @@ impl CPU
     // EI | 1  4 | - - - -
     fn ei(&mut self, _bus: &mut Bus) -> u8
     {
-        self.imeState = ImeState::EnableNext;
-
+        if self.imeState != ImeState::Enabled 
+        {
+            self.imeState = ImeState::EnableNext;
+        }
+        
         return 4;
     }
 

@@ -25,3 +25,9 @@ fn main()
         cpu.step(&mut bus);
     }
 }
+
+#[test]
+fn test()
+{
+    
+}

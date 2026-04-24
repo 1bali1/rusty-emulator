@@ -86,12 +86,12 @@ impl Bus
 
     pub fn getIf(&self) -> u8
     {
-        return self.read(0xff0f);
+        return self.read(0xff0f) | 0xe0;
     }
 
     pub fn setIf(&mut self, value: u8)
     {
-        self.write(0xff0f, value);
+        self.write(0xff0f, value | 0xe0);
     }
 
 }
