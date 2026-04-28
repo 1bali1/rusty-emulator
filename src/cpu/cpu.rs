@@ -25,7 +25,8 @@ impl CPU
 {
     pub fn new() -> Self
     {
-        let mut cpu = CPU {
+        let mut cpu = Self 
+        {
             registers: Registers::new(),
             isHalted: false,
             imeState: ImeState::Disabled,

@@ -2,23 +2,33 @@ use std::{fs::File, io::Read};
 use std::io::{self, Write};
 
 use crate::timer::Timer;
-
+use crate::ppu::PPU;
 pub struct Bus 
 {
     pub memory: [u8; 0x10000],
-    pub timer: Timer
+    pub timer: Timer,
+    pub ppu: PPU
 }
 
+
+// TODO: add io read/write to ppu registers
+// TODO: add timer read/write
+// TODO: remove memory vec
 impl Bus 
 {
     pub fn new() -> Self
     {
         let timer = Timer::new();
+        let ppu = PPU::new();
 
-        Self { 
+        let bus = Self 
+        { 
             memory: [0; 0x10000], 
-            timer: timer
-        }
+            timer: timer,
+            ppu: ppu
+        };
+
+        return bus;
     }
 
     pub fn read(&self, address: u16) -> u8
