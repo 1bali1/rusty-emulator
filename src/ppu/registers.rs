@@ -1,3 +1,5 @@
+use core::panic;
+
 pub struct Registers
 {
     lcdc: u8,
@@ -23,9 +25,9 @@ pub struct Registers
 
     // object color palette specification
     bcps: u8,
-    // bcpd: u8,
+    bcpd: u8,
     ocps: u8,
-    // ocpd: u8,
+    ocpd: u8,
     opri: u8,
 }
 
@@ -53,12 +55,75 @@ impl Registers {
             hdma4: 0,
             hdma5: 0,
             bcps: 0,
-            // bcpd: 0,
+            bcpd: 0,
             ocps: 0,
-            // ocpd: 0,
+            ocpd: 0,
             opri: 0
         };
         
         return registers;
     }
+
+    pub fn read(&self, address: u16) -> u8
+    {
+        let val = match address {
+            0xff40 => self.lcdc,
+            0xff41 => self.stat,
+            0xff42 => self.scy,
+            0xff43 => self.scx,
+            0xff44 => self.ly,
+            0xff45 => self.lyc,
+            0xff46 => self.dma,
+            0xff47 => self.bgp,
+            0xff48 => self.obp0,
+            0xff49 => self.obp1,
+            0xff4a => self.wy,
+            0xff4b => self.wx,
+            0xff4f => self.vbank,
+            0xff51 => self.hdma1,
+            0xff52 => self.hdma2,
+            0xff53 => self.hdma3,
+            0xff54 => self.hdma4,
+            0xff55 => self.hdma5,
+            0xff68 => self.bcps,
+            0xff69 => self.bcpd,
+            0xff6a => self.ocps,
+            0xff6b => self.ocpd,
+            0xff6c => self.opri,
+          _ => panic!("PPU Reg addr not found")  
+        };
+        return val;
+    }
+
+    pub fn write(&mut self, address: u16, value: u8)
+    {
+        match address {
+            0xff40 => self.lcdc = value,
+            0xff41 => self.stat = value,
+            0xff42 => self.scy = value,
+            0xff43 => self.scx = value,
+            0xff44 => self.ly = value,
+            0xff45 => self.lyc = value,
+            0xff46 => self.dma = value,
+            0xff47 => self.bgp = value,
+            0xff48 => self.obp0 = value,
+            0xff49 => self.obp1 = value,
+            0xff4a => self.wy = value,
+            0xff4b => self.wx = value,
+            0xff4f => self.vbank = value,
+            0xff51 => self.hdma1 = value,
+            0xff52 => self.hdma2 = value,
+            0xff53 => self.hdma3 = value,
+            0xff54 => self.hdma4 = value,
+            0xff55 => self.hdma5 = value,
+            0xff68 => self.bcps = value,
+            0xff69 => self.bcpd = value,
+            0xff6a => self.ocps = value,
+            0xff6b => self.ocpd = value,
+            0xff6c => self.opri = value,
+          _ => panic!("PPU Reg addr not found (2)")  
+        };
+    }
+
+
 }

@@ -10,8 +10,6 @@ pub struct Bus
     pub ppu: PPU
 }
 
-
-// TODO: add io read/write to ppu registers
 // TODO: add timer read/write
 // TODO: remove memory vec
 impl Bus 
@@ -39,6 +37,7 @@ impl Bus
             0xff05 => self.timer.tima,
             0xff06 => self.timer.tma,
             0xff07 => self.timer.tac | 0xf8,
+            0xff40..0xff55 | 0xff68..0xff6c => self.ppu.registers.read(address),
             _ => self.memory[address as usize]
         };
 
@@ -53,6 +52,7 @@ impl Bus
             0xff05 => self.timer.tima = value,
             0xff06 => self.timer.tma = value,
             0xff07 => self.timer.tac = value,
+            0xff40..0xff55 | 0xff68..0xff6c => self.ppu.registers.write(address, value),
             _ => self.memory[address as usize] = value
         }
 

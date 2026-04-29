@@ -14,7 +14,7 @@ pub struct PPU
     cycles: u32,
     pixelBuffer: [u32; 166 * 144],
     version: GameBoyVersion,
-    registers: Registers,
+    pub registers: Registers,
     vram: [[u8; 8192]; 2],
     bgPaletteRam: [u8; 64],
     objPaletteRam: [u8; 64],
