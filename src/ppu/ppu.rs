@@ -3,10 +3,20 @@ mod registers;
 
 use registers::Registers;
 
+use crate::bus::Bus;
+
 enum GameBoyVersion
 {
     DMG,
     Colored
+}
+
+enum Mode
+{
+    VBlank,
+    HBlank,
+    PixelTransfer,
+    OAMSearch
 }
 
 pub struct PPU
@@ -39,5 +49,10 @@ impl PPU {
         };
 
         return ppu;
+    }
+
+    pub fn step(&mut self)
+    {
+
     }
 }

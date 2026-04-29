@@ -7,7 +7,7 @@ pub struct Bus
 {
     pub memory: [u8; 0x10000],
     pub timer: Timer,
-    pub ppu: PPU
+    ppu: PPU
 }
 
 // TODO: add timer read/write
