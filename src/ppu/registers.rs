@@ -2,33 +2,33 @@ use core::panic;
 
 pub struct Registers
 {
-    lcdc: u8,
-    stat: u8,
-    scy: u8, // scroll
-    scx: u8,
-    ly: u8, // lcd y coor
-    lyc: u8, // ly comp
-    dma: u8,
-    bgp: u8, // bg pal data
-    obp0: u8, // obj pal
-    obp1: u8,
-    wy: u8, // win
-    wx: u8,
+    pub lcdc: u8,
+    pub stat: u8,
+    pub scy: u8, // scroll
+    pub scx: u8,
+    pub ly: u8, // lcd y coor
+    pub lyc: u8, // ly comp
+    pub dma: u8,
+    pub bgp: u8, // bg pal data
+    pub obp0: u8, // obj pal
+    pub obp1: u8,
+    pub wy: u8, // win
+    pub wx: u8,
 
     // colored
-    vbank: u8,
-    hdma1: u8,
-    hdma2: u8,
-    hdma3: u8,
-    hdma4: u8,
-    hdma5: u8, // 0-6 len ; 7. mode : 0|gdma 1|hblank dma
+    pub vbank: u8,
+    pub hdma1: u8,
+    pub hdma2: u8,
+    pub hdma3: u8,
+    pub hdma4: u8,
+    pub hdma5: u8, // 0-6 len ; 7. mode : 0|gdma 1|hblank dma
 
     // object color palette specification
-    bcps: u8,
-    bcpd: u8,
-    ocps: u8,
-    ocpd: u8,
-    opri: u8,
+    pub bcps: u8,
+    pub bcpd: u8,
+    pub ocps: u8,
+    pub ocpd: u8,
+    pub opri: u8,
 }
 
 impl Registers {

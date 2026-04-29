@@ -582,7 +582,7 @@ impl CPU
 
     }
 
-    pub fn step(&mut self, bus: &mut Bus)
+    pub fn step(&mut self, bus: &mut Bus) -> u8
     {
         if bus.timer.shouldInterrupt
         {
@@ -595,7 +595,7 @@ impl CPU
         if self.handleInterrupts(bus)
         {
             bus.timer.tick(16);
-            return;
+            return 16;
         }
 
         if self.imeState == ImeState::EnableNext { self.imeState = ImeState::Enabled; }
@@ -603,6 +603,8 @@ impl CPU
         let cycles = if self.isHalted { 4 } else { self.execute(bus) };
 
         bus.timer.tick(cycles);
+
+        return cycles;
     }
 
     fn handleInterrupts(&mut self, bus: &mut Bus) -> bool
