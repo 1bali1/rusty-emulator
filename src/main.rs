@@ -13,12 +13,8 @@ mod timer;
 use bus::Bus;
 use cpu::CPU;
 
-use crate::ppu::PPU;
-
-
 fn main() 
 {
-    let mut ppu = PPU::new();
     let mut bus = Bus::new();
     let mut cpu = CPU::new();
 
@@ -27,7 +23,7 @@ fn main()
     
     loop {
         let cycles = cpu.step(&mut bus);
-        ppu.step(cycles);
+        bus.tick(cycles);
         
        //println!("Opcode: 0x{:X} | PC: 0x{:X} | B: 0x{:X} | C: 0x{:X} | D: 0x{:X} | E: 0x{:X} | H: 0x{:X} | L: 0x{:X}", bus.read(cpu.registers.pc), cpu.registers.pc, cpu.registers.b, cpu.registers.c, cpu.registers.d, cpu.registers.e, cpu.registers.h, cpu.registers.f);
     }

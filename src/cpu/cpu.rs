@@ -594,15 +594,12 @@ impl CPU
 
         if self.handleInterrupts(bus)
         {
-            bus.timer.tick(16);
             return 16;
         }
 
         if self.imeState == ImeState::EnableNext { self.imeState = ImeState::Enabled; }
 
         let cycles = if self.isHalted { 4 } else { self.execute(bus) };
-
-        bus.timer.tick(cycles);
 
         return cycles;
     }

@@ -28,6 +28,12 @@ impl Bus
         return bus;
     }
 
+    pub fn tick(&mut self, cycles: u8)
+    {
+        self.ppu.step(cycles);
+        self.timer.tick(cycles);
+    }
+
     pub fn read(&self, address: u16) -> u8
     {
         let val = match address

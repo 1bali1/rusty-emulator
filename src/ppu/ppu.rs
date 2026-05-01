@@ -53,13 +53,10 @@ impl PPU {
         return ppu;
     }
 
-    pub fn step(&mut self, dots: u8)
+    pub fn step(&mut self, cycles: u8)
     {
         let isLcdOn = self.registers.lcdc & 0x80;
         
         if !isLcdOn == 0x80 { return; }
-
-        
-
     }
 }
