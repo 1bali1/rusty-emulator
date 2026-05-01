@@ -125,5 +125,10 @@ impl Registers {
         };
     }
 
+    pub fn incLy(&mut self)
+    {
+        self.ly += 1;
 
+        if self.ly > 153 { self.ly = 0; }
+    }
 }

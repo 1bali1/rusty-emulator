@@ -11,6 +11,7 @@ enum GameBoyVersion
     Colored
 }
 
+#[derive(PartialEq)]
 enum Mode
 {
     VBlank,
@@ -58,5 +59,36 @@ impl PPU {
         let isLcdOn = self.registers.lcdc & 0x80;
         
         if !isLcdOn == 0x80 { return; }
+
+        self.cycles += cycles as u32;
+
+        if self.cycles >= 456
+        {
+            self.registers.incLy();
+        }
+    }
+
+    pub fn readVram(&self, address: u16) -> u8
+    {
+        if self.mode == Mode::PixelTransfer { return 0xff }
+
+        let index = address - 0x8000;
+
+        if index > 8192 { return 0xff; }
+
+        let val = self.vram[self.registers.vbank as usize][index as usize];
+
+        return val;
+    }
+
+    pub fn writeVram(&mut self, address: u16, value: u8)
+    {
+        if self.mode == Mode::PixelTransfer { return; }
+
+        let index = address - 0x8000;
+
+        if index > 8192 { return; }
+
+        self.vram[self.registers.vbank as usize][index as usize] = value;
     }
 }

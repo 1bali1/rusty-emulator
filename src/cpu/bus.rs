@@ -38,6 +38,7 @@ impl Bus
     {
         let val = match address
         {
+            0x8000..0x9fff => self.ppu.readVram(address),
             0xff04..0xff07 => self.timer.read(address),
             0xff40..0xff55 | 0xff68..0xff6c => self.ppu.registers.read(address),
             _ => self.memory[address as usize]
@@ -50,6 +51,7 @@ impl Bus
     {
         match address 
         {
+            0x8000..0x9fff => self.ppu.writeVram(address, value),
             0xff04..0xff07 => self.timer.write(address, value),
             0xff40..0xff55 | 0xff68..0xff6c => self.ppu.registers.write(address, value),
             _ => self.memory[address as usize] = value
