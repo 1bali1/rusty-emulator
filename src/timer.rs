@@ -14,6 +14,30 @@ impl Timer
         Self { div: 0, tima: 0, tma: 0, tac: 0, shouldInterrupt: false }
     }
 
+    pub fn read(&self, address: u16) -> u8
+    {
+        let val = match address {
+            0xff04 => (self.div >> 8) as u8,
+            0xff05 => self.tima,
+            0xff06 => self.tma,
+            0xff07 => self.tac | 0xf8,
+            _ => panic!("Timer address not found")
+        };
+
+        return val;
+    }
+
+    pub fn write(&mut self, address: u16, value: u8)
+    {
+        match address {
+            0xff04 => self.div = 0,
+            0xff05 => self.tima = value,
+            0xff06 => self.tma = value,
+            0xff07 => self.tac = value,
+            _ => panic!("Timer address not found (2)")
+        }
+    }
+
     pub fn tick(&mut self, cycles: u8)
     {
         let mut tmpDiv = self.div;

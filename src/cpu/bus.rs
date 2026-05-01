@@ -10,7 +10,6 @@ pub struct Bus
     ppu: PPU
 }
 
-// TODO: add timer read/write
 // TODO: remove memory vec
 impl Bus 
 {
@@ -33,10 +32,7 @@ impl Bus
     {
         let val = match address
         {
-            0xff04 => (self.timer.div >> 8) as u8,
-            0xff05 => self.timer.tima,
-            0xff06 => self.timer.tma,
-            0xff07 => self.timer.tac | 0xf8,
+            0xff04..0xff07 => self.timer.read(address),
             0xff40..0xff55 | 0xff68..0xff6c => self.ppu.registers.read(address),
             _ => self.memory[address as usize]
         };
@@ -48,10 +44,7 @@ impl Bus
     {
         match address 
         {
-            0xff04 => self.timer.div = 0,
-            0xff05 => self.timer.tima = value,
-            0xff06 => self.timer.tma = value,
-            0xff07 => self.timer.tac = value,
+            0xff04..0xff07 => self.timer.write(address, value),
             0xff40..0xff55 | 0xff68..0xff6c => self.ppu.registers.write(address, value),
             _ => self.memory[address as usize] = value
         }
