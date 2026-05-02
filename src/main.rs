@@ -10,20 +10,18 @@ mod ppu;
 
 mod timer;
 
-use bus::Bus;
 use cpu::CPU;
 
 fn main() 
 {
-    let mut bus = Bus::new();
     let mut cpu = CPU::new();
 
-    let gbName = String::from("c.gb");
-    bus.loadRom(&gbName);
+    let gbName = String::from("k.gb");
+    cpu.bus.loadRom(&gbName);
     
     loop {
-        let cycles = cpu.step(&mut bus);
-        bus.tick(cycles);
+        let cycles = cpu.step();
+        cpu.bus.tick(cycles);
         
        //println!("Opcode: 0x{:X} | PC: 0x{:X} | B: 0x{:X} | C: 0x{:X} | D: 0x{:X} | E: 0x{:X} | H: 0x{:X} | L: 0x{:X}", bus.read(cpu.registers.pc), cpu.registers.pc, cpu.registers.b, cpu.registers.c, cpu.registers.d, cpu.registers.e, cpu.registers.h, cpu.registers.f);
     }
