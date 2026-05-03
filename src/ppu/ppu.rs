@@ -3,21 +3,20 @@ mod registers;
 
 use registers::Registers;
 
-use crate::bus::Bus;
-
 enum GameBoyVersion
 {
     DMG,
     Colored
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug, Copy, Clone)]
+#[repr(u8)]
 enum Mode
 {
-    VBlank,
-    HBlank,
-    PixelTransfer,
-    OAMSearch
+    VBlank = 0b01,
+    HBlank = 0b00,
+    PixelTransfer = 0b11,
+    OAMSearch = 0b10
 }
 
 pub struct PPU
@@ -65,7 +64,46 @@ impl PPU {
         if self.cycles >= 456
         {
             self.registers.incLy();
+            self.cycles -= 456;
+
+            if self.registers.ly >= 144 { self.doMode(Mode::VBlank) }
         }
+
+        // self.doMode(mode);
+    }
+
+    fn doMode(&mut self, mode: Mode)
+    {
+        self.mode = mode;
+        self.registers.stat = (self.registers.stat & 0xfc) | mode as u8;
+
+        match mode {
+            Mode::VBlank => self.vblank(),
+            Mode::HBlank => self.hblank(),
+            Mode::PixelTransfer => self.pixelTransfer(),
+            Mode::OAMSearch => self.oamSearch(),
+            _ => panic!("Panic")
+        }
+    }
+
+    fn vblank(&mut self)
+    {
+
+    }
+
+    fn hblank(&mut self)
+    {
+
+    }
+
+    fn pixelTransfer(&mut self)
+    {
+
+    }
+
+    fn oamSearch(&mut self)
+    {
+
     }
 
     pub fn readVram(&self, address: u16) -> u8
