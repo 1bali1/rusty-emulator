@@ -16,7 +16,7 @@ fn main()
 {
     let mut cpu = CPU::new();
 
-    let gbName = String::from("k.gb");
+    let gbName = String::from("b.gb");
     cpu.bus.loadRom(&gbName);
     
     loop {

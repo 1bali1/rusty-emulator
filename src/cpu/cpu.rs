@@ -53,7 +53,7 @@ impl CPU
         cpu.instructions[0x0f] = CPU::rrca;
         
         // 0x10
-        cpu.instructions[0x10] = CPU::nop;
+        cpu.instructions[0x10] = CPU::notImplemented;
         cpu.instructions[0x11] = CPU::ldDe;
         cpu.instructions[0x12] = CPU::ldDeAddressA;
         cpu.instructions[0x13] = CPU::incDe;

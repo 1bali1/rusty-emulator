@@ -19,6 +19,12 @@ enum Mode
     OAMSearch = 0b10
 }
 
+struct Sprite
+{
+    y: u8,
+    x: u8,
+    tileId: u8
+}
 pub struct PPU
 {
     cycles: u32,
@@ -106,9 +112,27 @@ impl PPU {
 
     }
 
+    pub fn readOam(&self, address: u16) -> u8
+    {
+        if self.mode == Mode::PixelTransfer || self.mode == Mode::OAMSearch { return 0xff; }
+
+        let index = address - 0xfe00;
+
+        return self.oam[index as usize];
+    }
+
+    pub fn writeOam(&mut self, address: u16, value: u8)
+    {
+        if self.mode == Mode::PixelTransfer || self.mode == Mode::OAMSearch { return; }
+
+        let index = address - 0xfe00;
+
+        self.oam[index as usize] = value;
+    }
+
     pub fn readVram(&self, address: u16) -> u8
     {
-        if self.mode == Mode::PixelTransfer { return 0xff }
+        if self.mode == Mode::PixelTransfer { return 0xff; }
 
         let index = address - 0x8000;
 
