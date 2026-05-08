@@ -125,9 +125,25 @@ impl Registers {
         };
     }
 
+    pub fn setLy(&mut self, value: u8)
+    {
+        self.ly = value;
+
+        if self.ly == self.lyc
+        {
+            self.stat |= 0x04;
+
+            // TODO: request interrupt if 6. bit is set
+        }
+        else 
+        {
+            self.stat &= !0x04;
+        }
+    }
+
     pub fn incLy(&mut self)
     {
-        self.ly += 1;
+        self.setLy(self.ly + 1);
 
         if self.ly > 153 { self.ly = 0; }
     }

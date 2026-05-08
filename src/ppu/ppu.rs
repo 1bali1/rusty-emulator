@@ -63,19 +63,18 @@ impl PPU {
     {
         let isLcdOn = self.registers.lcdc & 0x80;
         
-        if !isLcdOn == 0x80 { return; }
+        if !isLcdOn == 0x80 
+        { 
+            self.cycles = 0;
+            self.registers.ly = 0;
+            self.mode = Mode::VBlank;
+
+            return; 
+        }
 
         self.cycles += cycles as u32;
 
-        if self.cycles >= 456
-        {
-            self.registers.incLy();
-            self.cycles -= 456;
-
-            if self.registers.ly >= 144 { self.doMode(Mode::VBlank) }
-        }
-
-        // self.doMode(mode);
+        self.doMode(self.mode);
     }
 
     fn doMode(&mut self, mode: Mode)
@@ -94,22 +93,56 @@ impl PPU {
 
     fn vblank(&mut self)
     {
+        if self.cycles >= 456
+        {
+            self.cycles -= 456;
+            self.registers.incLy();
 
+            // if vblank completed
+            if self.registers.ly > 153
+            {
+                self.registers.ly = 0;
+                self.mode = Mode::OAMSearch;
+            }
+        }
     }
 
     fn hblank(&mut self)
     {
+        if self.cycles >= 204
+        {
+            self.cycles -= 204;
+            self.registers.incLy();
 
+            if self.registers.ly >= 144
+            {
+               // TODO: request vblank interrupt
+               self.mode = Mode::VBlank;
+            }
+            else 
+            {
+                self.mode = Mode::OAMSearch;    
+            }
+        }
     }
 
     fn pixelTransfer(&mut self)
     {
-
+        if self.cycles >= 172
+        {
+            self.cycles -= 172;
+            self.mode = Mode::HBlank;
+            // TODO: render scanline
+        }
     }
 
     fn oamSearch(&mut self)
     {
-
+        if self.cycles >= 80
+        {
+            self.cycles -= 80;
+            self.mode = Mode::PixelTransfer;
+        }
     }
 
     pub fn readOam(&self, address: u16) -> u8
