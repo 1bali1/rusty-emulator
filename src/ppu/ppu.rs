@@ -77,6 +77,7 @@ impl PPU {
         self.doMode(self.mode);
     }
 
+    // TODO: pixel-perfect simulation
     fn doMode(&mut self, mode: Mode)
     {
         self.mode = mode;
@@ -133,7 +134,8 @@ impl PPU {
         {
             self.cycles -= 172;
             self.mode = Mode::HBlank;
-            // TODO: render scanline
+            
+            self.renderLine();
         }
     }
 
@@ -143,6 +145,23 @@ impl PPU {
         {
             self.cycles -= 80;
             self.mode = Mode::PixelTransfer;
+        }
+    }
+
+    fn renderLine(&mut self)
+    {
+        let ly = self.registers.ly;
+        let scy = self.registers.scy;
+        let scx = self.registers.scx;
+
+        let yPos = ly.wrapping_add(scy);
+        let tileRow = (yPos / 8) as u16;
+        let tileLine = (yPos % 8) as u16;
+
+        for x in 0..159
+        {
+            let xPos = (x as u8).wrapping_add(scx);
+            
         }
     }
 
