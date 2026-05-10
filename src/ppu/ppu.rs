@@ -150,18 +150,32 @@ impl PPU {
 
     fn renderLine(&mut self)
     {
+        let lcdc = self.registers.lcdc;
         let ly = self.registers.ly;
         let scy = self.registers.scy;
         let scx = self.registers.scx;
-
-        let yPos = ly.wrapping_add(scy);
-        let tileRow = (yPos / 8) as u16;
-        let tileLine = (yPos % 8) as u16;
+        let wy = self.registers.wy;
+        let wx = self.registers.wx.wrapping_sub(7);
 
         for x in 0..159
         {
             let xPos = (x as u8).wrapping_add(scx);
+
+            let windowEnabled = (lcdc >> 5) & 0x01;
+            let isWindow = windowEnabled == 1 && ly >= wy && xPos >= wx; // i think it shouldnt be affected by scroll registers or idk
+
+            let yPos = if isWindow { ly } else { ly.wrapping_add(scy) };
+            let xPos = if isWindow { x as u8 - wx } else { (x as u8).wrapping_add(scx) };
+            let mapBaseAddr: u16 = if isWindow { if (lcdc >> 6) & 0x01 == 1 { 0x9c00 } else { 0x9800 } } else { if (lcdc >> 3) & 0x01 == 1 { 0x9c00 } else { 0x9800 } };
+
+            let tileRow = (yPos / 8) as u8;
+            let tileCol = (xPos / 8) as u8;
             
+            // * 32 = full matrix
+            // ! not sure if + tileCol as u16 will be ok
+            let tileMapIndexAddress = mapBaseAddr + (tileRow as u16 * 32) + tileCol as u16;
+            let tileIndex = self.readVram(tileMapIndexAddress);
+
         }
     }
 
