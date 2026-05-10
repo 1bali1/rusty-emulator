@@ -6,8 +6,10 @@ use crate::ppu::PPU;
 pub struct Bus 
 {
     pub memory: [u8; 0x10000],
-    pub timer: Timer,
-    ppu: PPU
+    timer: Timer,
+    ppu: PPU,
+    pub ie: u8,
+    pub ifl: u8
 }
 
 // TODO: remove memory vec
@@ -22,7 +24,9 @@ impl Bus
         { 
             memory: [0; 0x10000], 
             timer: timer,
-            ppu: ppu
+            ppu: ppu,
+            ie: 0,
+            ifl: 0
         };
 
         return bus;
@@ -30,8 +34,17 @@ impl Bus
 
     pub fn tick(&mut self, cycles: u8)
     {
+        // ppu step & interrupt request handling
         self.ppu.step(cycles);
+
+        self.ifl = self.ifl | self.ppu.registers.interrupt;
+        self.ppu.registers.interrupt = 0;
+
+        // timer step & interrupt request handling
         self.timer.tick(cycles);
+
+        self.ifl = self.ifl | self.timer.interrupt;
+        self.timer.interrupt = 0;
     }
 
     pub fn read(&self, address: u16) -> u8
@@ -42,6 +55,8 @@ impl Bus
             0x8000..0x9fff => self.ppu.readVram(address),
             0xff04..0xff07 => self.timer.read(address),
             0xff40..0xff55 | 0xff68..0xff6c => self.ppu.registers.read(address),
+            0xffff => self.ie,
+            0xff0f => self.ifl,
             _ => self.memory[address as usize]
         };
 
@@ -56,6 +71,8 @@ impl Bus
             0x8000..0x9fff => self.ppu.writeVram(address, value),
             0xff04..0xff07 => self.timer.write(address, value),
             0xff40..0xff55 | 0xff68..0xff6c => self.ppu.registers.write(address, value),
+            0xffff => self.ie = value,
+            0xff0f => self.ifl = value | 0xe0,
             _ => self.memory[address as usize] = value
         }
 
@@ -91,20 +108,4 @@ impl Bus
 
         println!("ROM has loaded successfully!")
     }
-
-    pub fn getIe(&self) -> u8
-    {
-        return self.read(0xffff);
-    }
-
-    pub fn getIf(&self) -> u8
-    {
-        return self.read(0xff0f);
-    }
-
-    pub fn setIf(&mut self, value: u8)
-    {
-        self.write(0xff0f, value | 0xe0);
-    }
-
 }

@@ -4,14 +4,14 @@ pub struct Timer
     pub tima: u8,
     pub tma: u8,
     pub tac: u8,
-    pub shouldInterrupt: bool
+    pub interrupt: u8
 }
 
 impl Timer
 {
     pub fn new() -> Self
     {
-        Self { div: 0, tima: 0, tma: 0, tac: 0, shouldInterrupt: false }
+        Self { div: 0, tima: 0, tma: 0, tac: 0, interrupt: 0 }
     }
 
     pub fn read(&self, address: u16) -> u8
@@ -63,7 +63,7 @@ impl Timer
             if self.tima == 0xff
             {
                 self.tima = self.tma;
-                self.shouldInterrupt = true;
+                self.interrupt |= 0x04;
 
                 break;
             }

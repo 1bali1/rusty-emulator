@@ -116,12 +116,13 @@ impl PPU {
 
             if self.registers.ly >= 144
             {
-               // TODO: request vblank interrupt
+               self.registers.interrupt |= 0x01; 
+
                self.mode = Mode::VBlank;
             }
             else 
             {
-                self.mode = Mode::OAMSearch;    
+                self.mode = Mode::OAMSearch;
             }
         }
     }

@@ -586,14 +586,6 @@ impl CPU
 
     pub fn step(&mut self) -> u8
     {
-        if self.bus.timer.shouldInterrupt
-        {
-            let ifFlag = self.bus.getIf();
-            self.bus.setIf(ifFlag | 0x04);
-
-            self.bus.timer.shouldInterrupt = false;
-        }
-
         if self.handleInterrupts()
         {
             return 16;
@@ -608,7 +600,7 @@ impl CPU
 
     fn handleInterrupts(&mut self) -> bool
     {
-        let intr = self.bus.getIe() & self.bus.getIf() & 0x1f;
+        let intr = self.bus.ie & self.bus.ifl & 0x1f;
 
         if intr != 0 { self.isHalted = false; }
         
@@ -631,10 +623,9 @@ impl CPU
         self.isHalted = false;
         self.imeState = ImeState::Disabled;
 
-        let ifVal = self.bus.getIf();
-        let deletedIf = ifVal & !(1 << bitIndex);
+        let deletedIf = self.bus.ifl & !(1 << bitIndex);
         
-        self.bus.setIf(deletedIf);
+        self.bus.ifl = deletedIf;
 
         self.pushU16(self.registers.pc);
 

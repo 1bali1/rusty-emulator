@@ -29,6 +29,9 @@ pub struct Registers
     pub ocps: u8,
     pub ocpd: u8,
     pub opri: u8,
+
+    // intr
+    pub interrupt: u8
 }
 
 impl Registers {
@@ -58,7 +61,8 @@ impl Registers {
             bcpd: 0,
             ocps: 0,
             ocpd: 0,
-            opri: 0
+            opri: 0,
+            interrupt: 0
         };
         
         return registers;
@@ -133,7 +137,7 @@ impl Registers {
         {
             self.stat |= 0x04;
 
-            // TODO: request interrupt if 6. bit is set
+            self.interrupt |= 0x02;
         }
         else 
         {
