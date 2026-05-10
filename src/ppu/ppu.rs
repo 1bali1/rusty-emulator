@@ -28,7 +28,7 @@ struct Sprite
 pub struct PPU
 {
     cycles: u32,
-    pixelBuffer: [u32; 160 * 144],
+    pub pixelBuffer: [u32; 160 * 144],
     version: GameBoyVersion,
     pub registers: Registers,
     vram: [[u8; 8192]; 2],
@@ -87,8 +87,7 @@ impl PPU {
             Mode::VBlank => self.vblank(),
             Mode::HBlank => self.hblank(),
             Mode::PixelTransfer => self.pixelTransfer(),
-            Mode::OAMSearch => self.oamSearch(),
-            _ => panic!("Panic")
+            Mode::OAMSearch => self.oamSearch()
         }
     }
 
@@ -100,7 +99,7 @@ impl PPU {
             self.registers.incLy();
 
             // if vblank completed
-            if self.registers.ly > 153
+            if self.registers.ly >= 153
             {
                 self.registers.ly = 0;
                 self.mode = Mode::OAMSearch;
@@ -120,6 +119,8 @@ impl PPU {
                self.registers.interrupt |= 0x01; 
 
                self.mode = Mode::VBlank;
+
+               println!("VBlank");
             }
             else 
             {
@@ -170,15 +171,48 @@ impl PPU {
 
             let tileRow = (yPos / 8) as u8;
             let tileCol = (xPos / 8) as u8;
+            let tileLine = (yPos % 8) as u8;
+            let tilePx = 7 - (xPos % 8) as u8;
             
             // * 32 = full matrix
             // ! not sure if + tileCol as u16 will be ok
             let tileMapIndexAddress = mapBaseAddr + (tileRow as u16 * 32) + tileCol as u16;
             let tileIndex = self.readVram(tileMapIndexAddress);
 
+            let bgWinTiles = (lcdc >> 4) & 0x01 == 1;
+            let tileBaseAddr = if bgWinTiles 
+            { 
+                0x8000 + (tileIndex as u16 * 16) // full size 16
+            }
+            else 
+            {
+                let offset = (tileIndex as i8 as i32) * 16;
+                (0x9000 as i32 + offset) as u16
+            }; 
+
+            let tileLineAddr = tileBaseAddr + (tileLine as u16 * 2);
+
+            let lowLine = self.readVram(tileLineAddr);
+            let highLine = self.readVram(tileLineAddr + 1);
+
+            let cbit0 = (lowLine >> tilePx) & 0x01;
+            let cbit1 = (highLine >> tilePx) & 0x01;
+
+            let colorId = (cbit1 << 1) | cbit0;
+            self.pixelBuffer[(ly as u32 * 160 + x) as usize] = self.getDmgColors(colorId);
+
         }
     }
 
+    fn getDmgColors(&self, color_id: u8) -> u32 {
+        match color_id {
+            0 => 0xffffff,
+            1 => 0xaaaaaa,
+            2 => 0x555555,
+            3 => 0x000000,
+            _ => 0x000000,
+        }
+    }
     pub fn readOam(&self, address: u16) -> u8
     {
         if self.mode == Mode::PixelTransfer || self.mode == Mode::OAMSearch { return 0xff; }

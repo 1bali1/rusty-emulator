@@ -7,7 +7,7 @@ pub struct Bus
 {
     pub memory: [u8; 0x10000],
     timer: Timer,
-    ppu: PPU,
+    pub ppu: PPU,
     pub ie: u8,
     pub ifl: u8
 }
