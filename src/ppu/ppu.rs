@@ -30,6 +30,7 @@ pub struct PPU
     cycles: u32,
     pub pixelBuffer: [u32; 160 * 144],
     version: GameBoyVersion,
+    pub frameReady: bool,
     pub registers: Registers,
     vram: [[u8; 8192]; 2],
     bgPaletteRam: [u8; 64],
@@ -48,6 +49,7 @@ impl PPU {
             cycles: 0,
             pixelBuffer: [0; 160 * 144],
             version: GameBoyVersion::DMG,
+            frameReady: false,
             registers: Registers::new(),
             vram: [[0; 8192]; 2],
             bgPaletteRam: [0; 64],
@@ -119,6 +121,7 @@ impl PPU {
                self.registers.interrupt |= 0x01; 
 
                self.mode = Mode::VBlank;
+               self.frameReady = true;
 
                println!("VBlank");
             }

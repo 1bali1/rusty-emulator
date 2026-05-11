@@ -25,17 +25,21 @@ fn main()
 
     let mut cpu = CPU::new();
 
-    let gbName = String::from("a.gb");
-    cpu.bus.loadRom(&gbName);
-
+    // let gbName = String::from("a.gb");
+    // cpu.bus.loadRom(&gbName);
+    
     loop
     {
         let cycles = cpu.step();
         cpu.bus.tick(cycles);
 
-        if window.is_open()
+        if cpu.bus.ppu.frameReady
         {
-            let _ = window.update_with_buffer(&cpu.bus.ppu.pixelBuffer, 160, 144);
+            if window.is_open()
+            {
+                let _ = window.update_with_buffer(&cpu.bus.ppu.pixelBuffer, 160, 144);
+                cpu.bus.ppu.frameReady = false;
+            }
         }
         
        //println!("Opcode: 0x{:X} | PC: 0x{:X} | B: 0x{:X} | C: 0x{:X} | D: 0x{:X} | E: 0x{:X} | H: 0x{:X} | L: 0x{:X}", bus.read(cpu.registers.pc), cpu.registers.pc, cpu.registers.b, cpu.registers.c, cpu.registers.d, cpu.registers.e, cpu.registers.h, cpu.registers.f);

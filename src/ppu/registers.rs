@@ -125,7 +125,7 @@ impl Registers {
             0xff6a => self.ocps = value,
             0xff6b => self.ocpd = value,
             0xff6c => self.opri = value,
-          _ => panic!("PPU Reg addr not found (2) {:X}", address)  
+          _ => panic!("PPU Reg addr not found (2) {:X}", address) // TODO: ff50
         };
     }
 
