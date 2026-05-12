@@ -27,7 +27,7 @@ struct Sprite
 }
 pub struct PPU
 {
-    cycles: u32,
+    cycles: usize,
     pub pixelBuffer: [u32; 160 * 144],
     version: GameBoyVersion,
     pub frameReady: bool,
@@ -74,7 +74,7 @@ impl PPU {
             return; 
         }
 
-        self.cycles += cycles as u32;
+        self.cycles += cycles as usize;
 
         self.doMode(self.mode);
     }
@@ -161,14 +161,12 @@ impl PPU {
         let wy = self.registers.wy;
         let wx = self.registers.wx.wrapping_sub(7);
 
-        for x in 0..159
+        for x in 0..160
         {
-            let xPos = (x as u8).wrapping_add(scx);
-
             let windowEnabled = (lcdc >> 5) & 0x01;
-            let isWindow = windowEnabled == 1 && ly >= wy && xPos >= wx; // i think it shouldnt be affected by scroll registers or idk
+            let isWindow = windowEnabled == 1 && ly >= wy && x >= wx; // i think it shouldnt be affected by scroll registers or idk
 
-            let yPos = if isWindow { ly } else { ly.wrapping_add(scy) };
+            let yPos = if isWindow { ly - wy } else { ly.wrapping_add(scy) };
             let xPos = if isWindow { x as u8 - wx } else { (x as u8).wrapping_add(scx) };
             let mapBaseAddr: u16 = if isWindow { if (lcdc >> 6) & 0x01 == 1 { 0x9c00 } else { 0x9800 } } else { if (lcdc >> 3) & 0x01 == 1 { 0x9c00 } else { 0x9800 } };
 
@@ -202,13 +200,13 @@ impl PPU {
             let cbit1 = (highLine >> tilePx) & 0x01;
 
             let colorId = (cbit1 << 1) | cbit0;
-            self.pixelBuffer[(ly as u32 * 160 + x) as usize] = self.getDmgColors(colorId);
+            self.pixelBuffer[(ly as usize * 160 + x as usize) as usize] = self.getDmgColors(colorId);
 
         }
     }
 
-    fn getDmgColors(&self, color_id: u8) -> u32 {
-        match color_id {
+    fn getDmgColors(&self, colorId: u8) -> u32 {
+        match colorId {
             0 => 0xffffff,
             1 => 0xaaaaaa,
             2 => 0x555555,
@@ -249,6 +247,7 @@ impl PPU {
 
     pub fn writeVram(&mut self, address: u16, value: u8)
     {
+        // TODO: screen is glitchy if this shit is blocking the vram
         if self.mode == Mode::PixelTransfer { return; }
 
         let index = address - 0x8000;

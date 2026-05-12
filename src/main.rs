@@ -17,7 +17,7 @@ fn main()
 {
     let winOptions = WindowOptions
     {
-        scale: minifb::Scale::X2,
+        scale: minifb::Scale::X4,
         ..Default::default()
     };
     let mut window = Window::new("Rusty Emulator", 160, 144, winOptions).unwrap();
@@ -25,8 +25,8 @@ fn main()
 
     let mut cpu = CPU::new();
 
-    // let gbName = String::from("a.gb");
-    // cpu.bus.loadRom(&gbName);
+    let gbName = String::from("drmario.gb");
+    cpu.bus.loadRom(&gbName);
     
     loop
     {
