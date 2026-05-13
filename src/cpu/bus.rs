@@ -57,6 +57,7 @@ impl Bus
             0xff40..0xff55 | 0xff68..0xff6c => self.ppu.registers.read(address),
             0xffff => self.ie,
             0xff0f => self.ifl,
+            0xff00 => 0xff, // until joypad
             _ => self.memory[address as usize]
         };
 

@@ -14,6 +14,8 @@ pub struct Registers
     pub obp1: u8,
     pub wy: u8, // win
     pub wx: u8,
+    pub yCon: bool,
+    pub wlc: u8,
 
     // colored
     pub vbank: u8,
@@ -51,6 +53,8 @@ impl Registers {
             obp1: 0,
             wy: 0,
             wx: 0,
+            yCon: false,
+            wlc: 0,
             vbank: 0,
             hdma1: 0,
             hdma2: 0,
@@ -94,7 +98,7 @@ impl Registers {
             0xff6a => self.ocps,
             0xff6b => self.ocpd,
             0xff6c => self.opri,
-          _ => panic!("PPU Reg addr not found")  
+          _ => panic!("PPU Reg addr not found (2) {:X}", address)
         };
         return val;
     }
@@ -133,6 +137,8 @@ impl Registers {
     {
         self.ly = value;
 
+        //if (self.stat >> 6) & 0x01 != 1 { return; } 
+
         if self.ly == self.lyc
         {
             self.stat |= 0x04;
@@ -149,6 +155,6 @@ impl Registers {
     {
         self.setLy(self.ly + 1);
 
-        if self.ly > 153 { self.ly = 0; }
+        if self.ly >= 154 { self.ly = 0; }
     }
 }

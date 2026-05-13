@@ -63,13 +63,14 @@ impl PPU {
 
     pub fn step(&mut self, cycles: u8)
     {
-        let isLcdOn = self.registers.lcdc & 0x80;
-        
-        if !isLcdOn == 0x80 
-        { 
+        let ppuOn = self.registers.lcdc >> 7;
+
+        if ppuOn & 0x01 == 0
+        {
             self.cycles = 0;
-            self.registers.ly = 0;
-            self.mode = Mode::VBlank;
+            self.registers.wlc = 0; // ?
+            self.registers.setLy(0);
+            self.setMode(Mode::HBlank);
 
             return; 
         }
@@ -82,8 +83,7 @@ impl PPU {
     // TODO: pixel-perfect simulation
     fn doMode(&mut self, mode: Mode)
     {
-        self.mode = mode;
-        self.registers.stat = (self.registers.stat & 0xfc) | mode as u8;
+        self.setMode(mode);
 
         match mode {
             Mode::VBlank => self.vblank(),
@@ -103,8 +103,15 @@ impl PPU {
             // if vblank completed
             if self.registers.ly >= 153
             {
-                self.registers.ly = 0;
-                self.mode = Mode::OAMSearch;
+                println!("Frame ready");
+                
+                self.registers.wlc = 0;
+                self.registers.setLy(0);
+
+                self.frameReady = true;
+
+                self.setMode(Mode::OAMSearch);
+                
             }
         }
     }
@@ -118,16 +125,14 @@ impl PPU {
 
             if self.registers.ly >= 144
             {
-               self.registers.interrupt |= 0x01; 
-
-               self.mode = Mode::VBlank;
-               self.frameReady = true;
-
-               println!("VBlank");
+                
+                self.registers.interrupt |= 0x01;
+                    self.setMode(Mode::VBlank);
+                //println!("VBlank");
             }
             else 
             {
-                self.mode = Mode::OAMSearch;
+                self.setMode(Mode::OAMSearch);
             }
         }
     }
@@ -137,7 +142,7 @@ impl PPU {
         if self.cycles >= 172
         {
             self.cycles -= 172;
-            self.mode = Mode::HBlank;
+            self.setMode(Mode::HBlank);
             
             self.renderLine();
         }
@@ -148,7 +153,7 @@ impl PPU {
         if self.cycles >= 80
         {
             self.cycles -= 80;
-            self.mode = Mode::PixelTransfer;
+            self.setMode(Mode::PixelTransfer);
         }
     }
 
@@ -160,16 +165,25 @@ impl PPU {
         let scx = self.registers.scx;
         let wy = self.registers.wy;
         let wx = self.registers.wx.wrapping_sub(7);
+        let wlc = self.registers.wlc;
+        let mut winRendered = false;
+
+        let isBackgroundNWinEnabled = (lcdc & 0x01) == 1;
+        if !isBackgroundNWinEnabled {/*  println!("{:b}", lcdc); */ return; }
 
         for x in 0..160
         {
             let windowEnabled = (lcdc >> 5) & 0x01;
+            
             let isWindow = windowEnabled == 1 && ly >= wy && x >= wx; // i think it shouldnt be affected by scroll registers or idk
+            
+            if isWindow { winRendered = true; }
 
-            let yPos = if isWindow { ly - wy } else { ly.wrapping_add(scy) };
+            let yPos = if isWindow { wlc } else { ly.wrapping_add(scy) };
             let xPos = if isWindow { x as u8 - wx } else { (x as u8).wrapping_add(scx) };
             let mapBaseAddr: u16 = if isWindow { if (lcdc >> 6) & 0x01 == 1 { 0x9c00 } else { 0x9800 } } else { if (lcdc >> 3) & 0x01 == 1 { 0x9c00 } else { 0x9800 } };
-
+            
+            // ? pokemon ver lines
             let tileRow = (yPos / 8) as u8;
             let tileCol = (xPos / 8) as u8;
             let tileLine = (yPos % 8) as u8;
@@ -201,8 +215,9 @@ impl PPU {
 
             let colorId = (cbit1 << 1) | cbit0;
             self.pixelBuffer[(ly as usize * 160 + x as usize) as usize] = self.getDmgColors(colorId);
-
         }
+
+        if winRendered { self.registers.wlc = self.registers.wlc.wrapping_add(1); }
     }
 
     fn getDmgColors(&self, colorId: u8) -> u32 {
@@ -214,6 +229,30 @@ impl PPU {
             _ => 0x000000,
         }
     }
+
+    fn setMode(&mut self, mode: Mode)
+    {
+        let stat = self.registers.stat;
+        self.mode = mode;
+
+        self.registers.stat = (stat & 0xfc) | mode as u8;
+
+        if mode == Mode::HBlank && (stat >> 3 & 0x01) == 1 
+        {
+            self.registers.interrupt |= 0x02
+        }
+
+        if mode == Mode::VBlank && (stat >> 4 & 0x01) == 1 
+        {
+            self.registers.interrupt |= 0x02
+        }
+
+        if mode == Mode::OAMSearch && (stat >> 5 & 0x01) == 1
+        {
+            self.registers.interrupt |= 0x02
+        }
+    }
+
     pub fn readOam(&self, address: u16) -> u8
     {
         if self.mode == Mode::PixelTransfer || self.mode == Mode::OAMSearch { return 0xff; }
