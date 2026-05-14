@@ -638,6 +638,11 @@ impl CPU
            _ => panic!("Interrupt failed!")
         };
 
+        if byte == 0x0060
+        {
+            println!("Joypad interrupt");
+        }
+
         self.registers.pc = byte;
     }
 

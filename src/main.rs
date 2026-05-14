@@ -11,7 +11,7 @@ mod timer;
 mod joypad;
 
 use cpu::CPU;
-use minifb::{Window, WindowOptions};
+use minifb::{Window, WindowOptions, Key};
 
 fn main() 
 {
@@ -25,13 +25,23 @@ fn main()
 
     let mut cpu = CPU::new();
 
-    let gbName = String::from("tetris.gb");
+    let gbName = String::from("catrap.gb");
     cpu.bus.loadRom(&gbName);
     
     loop
     {
         let cycles = cpu.step();
         cpu.bus.tick(cycles);
+
+        cpu.bus.joypad.setKey(window.is_key_down(Key::D), 0, false);
+        cpu.bus.joypad.setKey(window.is_key_down(Key::A), 1, false);
+        cpu.bus.joypad.setKey(window.is_key_down(Key::W), 2, false);
+        cpu.bus.joypad.setKey(window.is_key_down(Key::S), 3, false);
+
+        cpu.bus.joypad.setKey(window.is_key_down(Key::J), 0, true);
+        cpu.bus.joypad.setKey(window.is_key_down(Key::K), 1, true);
+        cpu.bus.joypad.setKey(window.is_key_down(Key::Space), 2, true);
+        cpu.bus.joypad.setKey(window.is_key_down(Key::Enter), 3, true);
 
         if cpu.bus.ppu.frameReady
         {

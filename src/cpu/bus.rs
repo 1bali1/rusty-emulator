@@ -9,7 +9,7 @@ pub struct Bus
     pub memory: [u8; 0x10000],
     timer: Timer,
     pub ppu: PPU,
-    joypad: Joypad,
+    pub joypad: Joypad,
     pub ie: u8,
     pub ifl: u8
 }
@@ -41,7 +41,7 @@ impl Bus
         // ppu step & interrupt request handling
         self.ppu.step(cycles);
 
-        self.ifl = self.ifl | self.ppu.registers.interrupt;
+        self.ifl |= self.ppu.registers.interrupt;
         self.ppu.registers.interrupt = 0;
 
         // timer step & interrupt request handling
@@ -51,7 +51,7 @@ impl Bus
         self.timer.interrupt = 0;
 
         // joypad interrupts
-        self.ifl = self.ifl | self.joypad.interrupt;
+        self.ifl |= self.joypad.interrupt;
     }
 
     pub fn read(&self, address: u16) -> u8
