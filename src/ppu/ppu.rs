@@ -103,7 +103,7 @@ impl PPU {
             // if vblank completed
             if self.registers.ly >= 153
             {
-                println!("Frame ready");
+                //println!("Frame ready");
                 
                 self.registers.wlc = 0;
                 self.registers.setLy(0);
@@ -111,7 +111,6 @@ impl PPU {
                 self.frameReady = true;
 
                 self.setMode(Mode::OAMSearch);
-                
             }
         }
     }
@@ -125,10 +124,10 @@ impl PPU {
 
             if self.registers.ly >= 144
             {
-                
                 self.registers.interrupt |= 0x01;
-                    self.setMode(Mode::VBlank);
-                //println!("VBlank");
+                self.setMode(Mode::VBlank);
+                
+                // println!("VBlank");
             }
             else 
             {

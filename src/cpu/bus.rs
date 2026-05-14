@@ -3,11 +3,13 @@ use std::io::{self, Write};
 
 use crate::timer::Timer;
 use crate::ppu::PPU;
+use crate::joypad::Joypad;
 pub struct Bus 
 {
     pub memory: [u8; 0x10000],
     timer: Timer,
     pub ppu: PPU,
+    joypad: Joypad,
     pub ie: u8,
     pub ifl: u8
 }
@@ -19,12 +21,14 @@ impl Bus
     {
         let timer = Timer::new();
         let ppu = PPU::new();
+        let joypad = Joypad::new();
 
         let bus = Self 
         { 
             memory: [0; 0x10000], 
             timer: timer,
             ppu: ppu,
+            joypad: joypad,
             ie: 0,
             ifl: 0
         };
@@ -45,6 +49,9 @@ impl Bus
 
         self.ifl = self.ifl | self.timer.interrupt;
         self.timer.interrupt = 0;
+
+        // joypad interrupts
+        self.ifl = self.ifl | self.joypad.interrupt;
     }
 
     pub fn read(&self, address: u16) -> u8
@@ -57,7 +64,7 @@ impl Bus
             0xff40..0xff55 | 0xff68..0xff6c => self.ppu.registers.read(address),
             0xffff => self.ie,
             0xff0f => self.ifl,
-            0xff00 => 0xff, // until joypad
+            0xff00 => self.joypad.read(),
             _ => self.memory[address as usize]
         };
 
@@ -74,21 +81,16 @@ impl Bus
             0xff40..0xff55 | 0xff68..0xff6c => self.ppu.registers.write(address, value),
             0xffff => self.ie = value,
             0xff0f => self.ifl = value | 0xe0,
+            0xff00 => self.joypad.write(value),
             _ => self.memory[address as usize] = value
         }
 
         if address == 0xff01 || address == 0xff02
         {
-            print!("{}", value as char);
+            // print!("{}", value as char);
             io::stdout().flush().unwrap();
             return;
         }
-
-        /* if address < 0x8000 
-        {
-            return;
-        } */
-
     }
 
     pub fn loadRom(&mut self, name: &String)

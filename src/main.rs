@@ -7,8 +7,8 @@ mod cpu;
 mod registers;
 #[path = "ppu/ppu.rs"]
 mod ppu;
-
 mod timer;
+mod joypad;
 
 use cpu::CPU;
 use minifb::{Window, WindowOptions};
