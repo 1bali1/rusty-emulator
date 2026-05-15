@@ -19,10 +19,16 @@ enum Mode
     OAMSearch = 0b10
 }
 
+#[derive(Default, Clone, Copy)]
 struct Sprite
 {
     y: u8,
     x: u8,
+    yFlip: bool,
+    xFlip: bool,
+    bank: u8,
+    dmgPal: u8,
+    cgbPal: u8,
     tileId: u8
 }
 pub struct PPU
@@ -36,6 +42,7 @@ pub struct PPU
     bgPaletteRam: [u8; 64],
     objPaletteRam: [u8; 64],
     oam: [u8; 160],
+    sprites: [Sprite; 10],
     mode: Mode
 }
 
@@ -43,7 +50,9 @@ pub struct PPU
 
 impl PPU {
     pub fn new() -> Self
-    {
+    {   
+        let sprites = [Sprite::default(); 10];
+
         let ppu = Self 
         { 
             cycles: 0,
@@ -55,6 +64,7 @@ impl PPU {
             bgPaletteRam: [0; 64],
             objPaletteRam: [0; 64],
             oam: [0; 160],
+            sprites: sprites,
             mode: Mode::OAMSearch
         };
 
@@ -143,7 +153,8 @@ impl PPU {
             self.cycles -= 172;
             self.setMode(Mode::HBlank);
             
-            self.renderLine();
+            self.renderBackground();
+            // TODO: self.renderSprites();
         }
     }
 
@@ -153,10 +164,44 @@ impl PPU {
         {
             self.cycles -= 80;
             self.setMode(Mode::PixelTransfer);
+
+            self.searhSprites();
         }
     }
 
-    fn renderLine(&mut self)
+    fn searhSprites(&mut self)
+    {
+        let lcdc = self.registers.lcdc;
+        let isSpritesEnabled = (lcdc & 0x02) == 1;
+
+        if !isSpritesEnabled { return; }
+
+        for i in 0..40
+        {
+            let spriteAddress = 0xfe00 + i * 4;
+
+            let byte0 = self.readOam(spriteAddress);
+            let byte1 = self.readOam(spriteAddress + 1);
+            let byte2 = self.readOam(spriteAddress + 2);
+            let byte3 = self.readOam(spriteAddress + 3);
+
+            //     7    |   6    |   5    |      4      |   3  |   2 1 0
+            // Priority | Y flip | X flip | DMG palette | Bank | CGB palette
+            let sprite = Sprite
+            {
+                y: byte0.wrapping_add(16),
+                x: byte1.wrapping_add(8),
+                yFlip: (byte3 >> 6) & 0x01 == 1,
+                xFlip: (byte3 >> 5) & 0x01 == 1,
+                bank: byte3 >> 3,
+                dmgPal: byte3 >> 4,
+                cgbPal: 0, // TODO: read cgb pal
+                tileId: byte2
+            };
+        }
+    }
+
+    fn renderBackground(&mut self)
     {
         let lcdc = self.registers.lcdc;
         let ly = self.registers.ly;
