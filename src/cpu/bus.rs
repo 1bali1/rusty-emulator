@@ -66,6 +66,8 @@ impl Bus
             0xffff => self.ie,
             0xff0f => self.ifl,
             0xff00 => self.joypad.read(),
+            0xff01 => 0xff, // ! temporary
+            0xff02 => 0xff, // ! temporary
             _ => self.memory[address as usize]
         };
 
@@ -76,16 +78,15 @@ impl Bus
     {
         match address 
         {           
-            0xff46 => {
-                self.dmaTransfer(value);
-            },
+            0xff46 => self.dmaTransfer(value),
             0xfe00..0xfe9f => self.ppu.writeOam(address, value),
             0x8000..0x9fff => self.ppu.writeVram(address, value),
             0xff04..0xff07 => self.timer.write(address, value),
             0xff40..0xff55 | 0xff68..0xff6c => self.ppu.registers.write(address, value),
             0xffff => self.ie = value,
             0xff0f => self.ifl = value | 0xe0,
-            0xff00 => self.joypad.write(value),    
+            0xff00 => self.joypad.write(value),
+            // 0xff02 => self.ifl |= 0x08, // ! temporary
             _ => self.memory[address as usize] = value
         }
 

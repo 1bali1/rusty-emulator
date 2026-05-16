@@ -59,5 +59,4 @@ impl Joypad
             { self.directionsMatrix |= 1 << key; }
         }
     }
-
 }

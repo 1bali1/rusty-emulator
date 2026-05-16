@@ -25,7 +25,7 @@ fn main()
 
     let mut cpu = CPU::new();
 
-    let gbName = String::from("catrap.gb");
+    let gbName = String::from("tetris.gb");
     cpu.bus.loadRom(&gbName);
     
     loop
