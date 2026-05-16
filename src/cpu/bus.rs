@@ -52,6 +52,7 @@ impl Bus
 
         // joypad interrupts
         self.ifl |= self.joypad.interrupt;
+        self.joypad.interrupt = 0;
     }
 
     pub fn read(&self, address: u16) -> u8
@@ -74,14 +75,17 @@ impl Bus
     pub fn write(&mut self, address: u16, value: u8)
     {
         match address 
-        {
+        {           
+            0xff46 => {
+                self.dmaTransfer(value);
+            },
             0xfe00..0xfe9f => self.ppu.writeOam(address, value),
             0x8000..0x9fff => self.ppu.writeVram(address, value),
             0xff04..0xff07 => self.timer.write(address, value),
             0xff40..0xff55 | 0xff68..0xff6c => self.ppu.registers.write(address, value),
             0xffff => self.ie = value,
             0xff0f => self.ifl = value | 0xe0,
-            0xff00 => self.joypad.write(value),
+            0xff00 => self.joypad.write(value),    
             _ => self.memory[address as usize] = value
         }
 
@@ -90,6 +94,16 @@ impl Bus
             // print!("{}", value as char);
             io::stdout().flush().unwrap();
             return;
+        }
+    }
+
+    fn dmaTransfer(&mut self, value: u8)
+    {
+        let source = (value as u16) << 8;
+
+        for i in 0..0xa0
+        {
+            self.ppu.oam[i] = self.read(source + i as u16);
         }
     }
 

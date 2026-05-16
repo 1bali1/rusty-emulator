@@ -16,6 +16,7 @@ pub struct CPU
 {
     pub registers: Registers,
     pub isHalted: bool,
+    haltBug: bool,
     pub imeState: ImeState,
     pub bus: Bus,
     instructions: [InstructionFn; 256],
@@ -30,6 +31,7 @@ impl CPU
         {
             registers: Registers::new(),
             isHalted: false,
+            haltBug: false,
             bus: Bus::new(),
             imeState: ImeState::Disabled,
             instructions: [CPU::nop; 256],
@@ -586,31 +588,34 @@ impl CPU
 
     pub fn step(&mut self) -> u8
     {
-        if self.handleInterrupts()
-        {
-            return 16;
-        }
-
         if self.imeState == ImeState::EnableNext { self.imeState = ImeState::Enabled; }
+        
+        if self.handleInterrupts() { return 16; }
+        
+        if self.isHalted { return 4; }
 
-        let cycles = if self.isHalted { 4 } else { self.execute() };
-
+        let cycles = self.execute();
+    
         return cycles;
     }
 
     fn handleInterrupts(&mut self) -> bool
     {
+        if !self.isHalted && self.imeState != ImeState::Enabled { return false; }
+
         let intr = self.bus.ie & self.bus.ifl & 0x1f;
 
-        if intr != 0 { self.isHalted = false; }
-        
-        if intr == 0 || self.imeState != ImeState::Enabled { return false; }
+        if intr == 0 { return false; }
+
+        self.isHalted = false;
+        self.imeState = ImeState::Disabled;
 
         for bitIndex in 0..5
         {
             if intr & (1 << bitIndex) != 0
             {
                 self.executeInterrupt(bitIndex);
+
                 return true;
             }
         }
@@ -623,9 +628,7 @@ impl CPU
         self.isHalted = false;
         self.imeState = ImeState::Disabled;
 
-        let deletedIf = self.bus.ifl & !(1 << bitIndex);
-        
-        self.bus.ifl = deletedIf;
+        self.bus.ifl &= !(1 << bitIndex);
 
         self.pushU16(self.registers.pc);
 
@@ -637,19 +640,25 @@ impl CPU
            4 => 0x0060, // Joypad
            _ => panic!("Interrupt failed!")
         };
-
-        if byte == 0x0060
+        if bitIndex == 2
         {
-            println!("Joypad interrupt");
+            println!("asdy");
         }
-
         self.registers.pc = byte;
     }
 
     fn fetch(&mut self) -> u8
     {
         let val = self.bus.read(self.registers.pc);
-        self.registers.pc = self.registers.pc.wrapping_add(1);
+
+        if self.haltBug
+        {
+            self.haltBug = false;
+        }
+        else 
+        {
+            self.registers.pc = self.registers.pc.wrapping_add(1);
+        }
 
         return val;
     }
@@ -2147,8 +2156,9 @@ impl CPU
     // HALT | 1  4 | - - - -
     fn halt(&mut self) -> u8
     {
-        println!("Halted");
+        // println!("Halted");
         self.isHalted = true;
+        self.haltBug = self.bus.ifl & self.bus.ie & 0x1f != 0;
 
         return 4;
     }
@@ -5559,6 +5569,8 @@ impl CPU
 
     fn notImplemented(&mut self) -> u8
     {
-        panic!("Not implemented");
+        println!("Not implemented");
+
+        return 4;
     }
 }

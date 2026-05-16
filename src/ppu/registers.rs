@@ -129,7 +129,7 @@ impl Registers {
             0xff6a => self.ocps = value,
             0xff6b => self.ocpd = value,
             0xff6c => self.opri = value,
-          _ => panic!("PPU Reg addr not found (2) {:X}", address) // TODO: ff50
+          _ => print!("PPU Reg addr not found (2) {:X}", address) // TODO: ff50
         };
     }
 
@@ -137,15 +137,16 @@ impl Registers {
     {
         self.ly = value;
 
-        //if (self.stat >> 6) & 0x01 != 1 { return; } 
-
         if self.ly == self.lyc
         {
             self.stat |= 0x04;
 
-            self.interrupt |= 0x02;
+            if (self.stat >> 6) & 0x01 == 1 
+            {
+                self.interrupt |= 0x02;
+            }
         }
-        else 
+        else
         {
             self.stat &= !0x04;
         }
@@ -153,8 +154,12 @@ impl Registers {
 
     pub fn incLy(&mut self)
     {
-        self.setLy(self.ly + 1);
+        let next = if self.ly >= 153 {
+            0
+        } else {
+            self.ly + 1
+        };
 
-        if self.ly >= 154 { self.ly = 0; }
+        self.setLy(next);
     }
 }

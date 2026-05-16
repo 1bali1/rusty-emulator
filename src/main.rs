@@ -32,14 +32,14 @@ fn main()
     {
         let cycles = cpu.step();
         cpu.bus.tick(cycles);
-
+        
         cpu.bus.joypad.setKey(window.is_key_down(Key::D), 0, false);
         cpu.bus.joypad.setKey(window.is_key_down(Key::A), 1, false);
         cpu.bus.joypad.setKey(window.is_key_down(Key::W), 2, false);
         cpu.bus.joypad.setKey(window.is_key_down(Key::S), 3, false);
 
-        cpu.bus.joypad.setKey(window.is_key_down(Key::J), 0, true);
-        cpu.bus.joypad.setKey(window.is_key_down(Key::K), 1, true);
+        cpu.bus.joypad.setKey(window.is_key_down(Key::R), 0, true);
+        cpu.bus.joypad.setKey(window.is_key_down(Key::F), 1, true);
         cpu.bus.joypad.setKey(window.is_key_down(Key::Space), 2, true);
         cpu.bus.joypad.setKey(window.is_key_down(Key::Enter), 3, true);
 

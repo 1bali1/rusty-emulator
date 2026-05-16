@@ -64,15 +64,12 @@ impl Timer
             {
                 self.tima = self.tma;
                 self.interrupt |= 0x04;
-
-                break;
             }
             else 
             {
                 self.tima += 1 // should be simple + i think    
             }
         }
-
     }
 
     fn getClockSpeed(&self) -> u16

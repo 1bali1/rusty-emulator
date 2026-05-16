@@ -27,36 +27,40 @@ struct Sprite
     yFlip: bool,
     xFlip: bool,
     bank: u8,
-    dmgPal: u8,
+    dmgPal: bool,
     cgbPal: u8,
+    priority: bool,
+    oamIndex: u8,
+    size: u8,
     tileId: u8
 }
 pub struct PPU
 {
     cycles: usize,
     pub pixelBuffer: [u32; 160 * 144],
+    bgColors: [u8; 160 * 144],
     version: GameBoyVersion,
     pub frameReady: bool,
     pub registers: Registers,
     vram: [[u8; 8192]; 2],
     bgPaletteRam: [u8; 64],
     objPaletteRam: [u8; 64],
-    oam: [u8; 160],
-    sprites: [Sprite; 10],
+    pub oam: [u8; 160],
+    sprites: Vec<Sprite>,
     mode: Mode
 }
 
+const MAX_SPRITES_PER_LINE: usize = 10;
 // i = (y*160) + x
 
 impl PPU {
     pub fn new() -> Self
     {   
-        let sprites = [Sprite::default(); 10];
-
         let ppu = Self 
         { 
             cycles: 0,
             pixelBuffer: [0; 160 * 144],
+            bgColors: [0; 160 * 144],
             version: GameBoyVersion::DMG,
             frameReady: false,
             registers: Registers::new(),
@@ -64,7 +68,7 @@ impl PPU {
             bgPaletteRam: [0; 64],
             objPaletteRam: [0; 64],
             oam: [0; 160],
-            sprites: sprites,
+            sprites: [].to_vec(),
             mode: Mode::OAMSearch
         };
 
@@ -132,7 +136,7 @@ impl PPU {
             self.cycles -= 204;
             self.registers.incLy();
 
-            if self.registers.ly >= 144
+            if self.registers.ly == 144
             {
                 self.registers.interrupt |= 0x01;
                 self.setMode(Mode::VBlank);
@@ -154,7 +158,7 @@ impl PPU {
             self.setMode(Mode::HBlank);
             
             self.renderBackground();
-            // TODO: self.renderSprites();
+            self.renderSprites();
         }
     }
 
@@ -171,33 +175,49 @@ impl PPU {
 
     fn searhSprites(&mut self)
     {
+        self.sprites.clear();
+        
         let lcdc = self.registers.lcdc;
-        let isSpritesEnabled = (lcdc & 0x02) == 1;
+        let ly = self.registers.ly;
+        let spriteSize = if (lcdc >> 2) & 0x01 == 1 { 16 } else { 8 };
+        let isSpritesEnabled = (lcdc >> 1) & 0x01 == 1;
 
         if !isSpritesEnabled { return; }
 
         for i in 0..40
         {
-            let spriteAddress = 0xfe00 + i * 4;
+            let spriteAddress = i * 4;
 
-            let byte0 = self.readOam(spriteAddress);
-            let byte1 = self.readOam(spriteAddress + 1);
-            let byte2 = self.readOam(spriteAddress + 2);
-            let byte3 = self.readOam(spriteAddress + 3);
+            let byte0 = self.oam[spriteAddress];
+            let byte1 = self.oam[spriteAddress + 1];
+            let byte2 = self.oam[spriteAddress + 2];
+            let byte3 = self.oam[spriteAddress + 3];
+            
+            let yPos = byte0.wrapping_sub(16);
+            let xPos = byte1.wrapping_sub(8);
 
             //     7    |   6    |   5    |      4      |   3  |   2 1 0
             // Priority | Y flip | X flip | DMG palette | Bank | CGB palette
             let sprite = Sprite
             {
-                y: byte0.wrapping_add(16),
-                x: byte1.wrapping_add(8),
+                y: yPos,
+                x: xPos,
                 yFlip: (byte3 >> 6) & 0x01 == 1,
                 xFlip: (byte3 >> 5) & 0x01 == 1,
-                bank: byte3 >> 3,
-                dmgPal: byte3 >> 4,
+                bank: (byte3 >> 3) & 0x01,
+                dmgPal: (byte3 >> 4) & 0x01 == 1,
                 cgbPal: 0, // TODO: read cgb pal
+                priority: (byte3 >> 7) & 0x01 == 1,
+                oamIndex: i as u8,
+                size: spriteSize,
                 tileId: byte2
             };
+
+            if !(yPos <= ly && ly < yPos.wrapping_add(spriteSize)) { continue; }
+
+            self.sprites.push(sprite);
+
+            if self.sprites.len() >= MAX_SPRITES_PER_LINE { break; }
         }
     }
 
@@ -258,14 +278,76 @@ impl PPU {
             let cbit1 = (highLine >> tilePx) & 0x01;
 
             let colorId = (cbit1 << 1) | cbit0;
-            self.pixelBuffer[(ly as usize * 160 + x as usize) as usize] = self.getDmgColors(colorId);
+
+            let screenPos = (ly as usize * 160 + x as usize) as usize;
+
+            self.pixelBuffer[screenPos] = self.getDmgColors(self.registers.bgp, colorId);
+            self.bgColors[screenPos] = colorId;
         }
 
         if winRendered { self.registers.wlc = self.registers.wlc.wrapping_add(1); }
     }
 
-    fn getDmgColors(&self, colorId: u8) -> u32 {
-        match colorId {
+    fn renderSprites(&mut self)
+    {
+        self.sprites.sort_by(|a, b| {
+            if b.x != a.x {
+                b.x.cmp(&a.x)
+            } else {
+                b.oamIndex.cmp(&a.oamIndex)
+            }
+        });
+        
+        let ly = self.registers.ly;
+
+        for sprite in self.sprites.clone()
+        {
+            let mut tileRow = if sprite.yFlip { (sprite.size - 1).wrapping_sub(ly.wrapping_sub(sprite.y)) } else { ly.wrapping_sub(sprite.y) };
+            
+            let mut tileId = sprite.tileId as usize;
+
+            if sprite.size == 16
+            {
+                tileId = tileId & 0xfe;
+
+                if tileRow >= 8
+                {
+                    tileId += 1;
+                    tileRow -= 8;
+                }
+            }
+
+            let tileAddress = (tileId * 16) + (tileRow as usize * 2);
+
+            let lowLine = self.vram[sprite.bank as usize][tileAddress as usize];
+            let highLine = self.vram[sprite.bank as usize][tileAddress as usize + 1];
+
+            for x in 0..8
+            {
+                let px = if sprite.xFlip { x } else { 7 - x };
+                let pxPos = (ly as usize * 160) + sprite.x.wrapping_add(x) as usize;
+
+                let cbit0 = (lowLine >> px) & 0x01;
+                let cbit1 = (highLine >> px) & 0x01;
+
+                let colorId = (cbit1 << 1) | cbit0;
+
+                if sprite.priority && self.bgColors[pxPos] != 0 { continue; }
+                if colorId == 0 { continue; }
+
+                let palette = if sprite.dmgPal { self.registers.obp1 } else { self.registers.obp0 };
+
+                self.pixelBuffer[pxPos] = self.getDmgColors(palette, colorId);
+            }
+        }
+
+        self.sprites.clear();
+    }
+
+    fn getDmgColors(&self, pal: u8, colorId: u8) -> u32 {
+        let color = (pal >> (colorId * 2)) & 0x03;
+
+        match color {
             0 => 0xffffff,
             1 => 0xaaaaaa,
             2 => 0x555555,
@@ -281,17 +363,17 @@ impl PPU {
 
         self.registers.stat = (stat & 0xfc) | mode as u8;
 
-        if mode == Mode::HBlank && (stat >> 3 & 0x01) == 1 
+        if mode == Mode::HBlank && ((stat >> 3) & 0x01) == 1 
         {
             self.registers.interrupt |= 0x02
         }
 
-        if mode == Mode::VBlank && (stat >> 4 & 0x01) == 1 
+        if mode == Mode::VBlank && ((stat >> 4) & 0x01) == 1 
         {
             self.registers.interrupt |= 0x02
         }
 
-        if mode == Mode::OAMSearch && (stat >> 5 & 0x01) == 1
+        if mode == Mode::OAMSearch && ((stat >> 5) & 0x01) == 1
         {
             self.registers.interrupt |= 0x02
         }
