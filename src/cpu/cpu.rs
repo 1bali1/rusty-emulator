@@ -587,23 +587,25 @@ impl CPU
     }
 
     pub fn step(&mut self) -> u8
-    {
-        if self.imeState == ImeState::EnableNext { self.imeState = ImeState::Enabled; }
-        
+    {   
         if self.handleInterrupts() { return 16; }
         
         if self.isHalted { return 4; }
-
+        
         let cycles = self.execute();
-    
+        
+        if self.imeState == ImeState::EnableNext { self.imeState = ImeState::Enabled; }
+
         return cycles;
     }
 
     fn handleInterrupts(&mut self) -> bool
     {
-        if !self.isHalted && self.imeState != ImeState::Enabled { return false; }
-
         let intr = self.bus.ie & self.bus.ifl & 0x1f;
+
+        if intr != 0 { self.isHalted = false; }
+
+        if self.imeState != ImeState::Enabled { return false; }
 
         if intr == 0 { return false; }
 
@@ -2848,13 +2850,13 @@ impl CPU
     fn jpNz(&mut self) -> u8
     {
         let flag = self.registers.getFlag(Registers::MASK_ZERO_Z);
+        let address = self.fetchU16();
 
         if flag
         {
             return 12;
         }
 
-        let address = self.fetchU16();
         self.registers.pc = address;
 
         return 16;
