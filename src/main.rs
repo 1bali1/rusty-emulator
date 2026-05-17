@@ -10,6 +10,10 @@ mod ppu;
 mod timer;
 mod joypad;
 mod serial;
+#[path = "mbc/mbc.rs"]
+mod mbc;
+#[path = "mbc/nombc.rs"]
+mod nombc;
 
 use cpu::CPU;
 use minifb::{Window, WindowOptions, Key};
@@ -52,8 +56,6 @@ fn main()
                 cpu.bus.ppu.frameReady = false;
             }
         }
-        
-       //println!("Opcode: 0x{:X} | PC: 0x{:X} | B: 0x{:X} | C: 0x{:X} | D: 0x{:X} | E: 0x{:X} | H: 0x{:X} | L: 0x{:X}", bus.read(cpu.registers.pc), cpu.registers.pc, cpu.registers.b, cpu.registers.c, cpu.registers.d, cpu.registers.e, cpu.registers.h, cpu.registers.f);
     }
 }
 

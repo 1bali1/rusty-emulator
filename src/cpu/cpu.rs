@@ -2957,7 +2957,7 @@ impl CPU
     fn prefix(&mut self) -> u8
     {
         let opcode = self.fetch();
-        let clockCycle = self.prefixedInstructions[opcode as usize](self, );
+        let clockCycle = self.prefixedInstructions[opcode as usize](self);
 
         return 4 + clockCycle;
     }

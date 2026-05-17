@@ -1,13 +1,18 @@
 use std::{fs::File, io::Read};
 use std::io::{self, Write};
 
+use crate::mbc::MBC;
+use crate::nombc::NoMBC;
 use crate::serial::Serial;
 use crate::timer::Timer;
 use crate::ppu::PPU;
 use crate::joypad::Joypad;
+
 pub struct Bus 
 {
-    pub memory: [u8; 0x10000],
+    pub mbc: Box<dyn MBC>,
+    wram: [u8; 8192],
+    hram: [u8; 127],
     timer: Timer,
     serial: Serial,
     pub ppu: PPU,
@@ -28,7 +33,9 @@ impl Bus
 
         let bus = Self 
         { 
-            memory: [0; 0x10000], 
+            mbc: Box::new(NoMBC::new([0].to_vec())),
+            wram: [0; 8192],
+            hram: [0; 127],
             timer: timer,
             serial: serial,
             ppu: ppu,
@@ -69,15 +76,23 @@ impl Bus
     {
         let val = match address
         {
-            0xfe00..=0xfe9f => self.ppu.readOam(address),
+            //0xff4c..=0xff4d => 0xff,
+            0x0000..=0x7fff => self.mbc.readRom(address),
             0x8000..=0x9fff => self.ppu.readVram(address),
+            0xa000..=0xbfff => self.mbc.readRam(address),
+            0xc000..=0xdfff => self.wram[(address - 0xc000) as usize],
+            0xe000..=0xfdff => self.read(address - 0x2000),
+            0xfe00..=0xfe9f => self.ppu.readOam(address),
+            0xff80..=0xfffe => self.hram[(address - 0xff80) as usize],
+            0xfea0..=0xfeff => 0xff,
+            // io ranges
             0xff04..=0xff07 => self.timer.read(address),
-            0xff40..=0xff55 | 0xff68..=0xff6c => self.ppu.registers.read(address),
-            0xffff => self.ie,
-            0xff0f => self.ifl,
+            0xff40..=0xff4b | 0xff4f | 0xff51..=0xff55 | 0xff68..=0xff6c => self.ppu.registers.read(address),
             0xff00 => self.joypad.read(),
             0xff01..=0xff02 => self.serial.read(address),
-            _ => self.memory[address as usize]
+            0xffff => self.ie,
+            0xff0f => self.ifl,
+            _ => 0xff
         };
 
         return val;
@@ -86,17 +101,25 @@ impl Bus
     pub fn write(&mut self, address: u16, value: u8)
     {
         match address 
-        {           
-            0xff46 => self.dmaTransfer(value),
-            0xfe00..=0xfe9f => self.ppu.writeOam(address, value),
+        {
+            //0xff4c..=0xff4d => {},
+            0x0000..=0x7fff => self.mbc.writeRom(address, value),
             0x8000..=0x9fff => self.ppu.writeVram(address, value),
+            0xa000..=0xbfff => self.mbc.writeRam(address, value),
+            0xc000..=0xdfff => self.wram[(address - 0xc000) as usize] = value,
+            0xe000..=0xfdff => self.write(address - 0x2000, value),
+            0xfe00..=0xfe9f => self.ppu.writeOam(address, value),
+            0xff80..=0xfffe => self.hram[(address - 0xff80) as usize] = value,
+            0xfea0..=0xfeff => {},
+            // io ranges
             0xff04..=0xff07 => self.timer.write(address, value),
-            0xff40..=0xff55 | 0xff68..=0xff6c => self.ppu.registers.write(address, value),
-            0xffff => self.ie = value,
-            0xff0f => self.ifl = value | 0xe0,
+            0xff46 => self.dmaTransfer(value),
+            0xff40..=0xff4b | 0xff4f | 0xff51..=0xff55 | 0xff68..=0xff6c => self.ppu.registers.write(address, value),
             0xff00 => self.joypad.write(value),
             0xff01..=0xff02 => self.serial.write(address, value),
-            _ => self.memory[address as usize] = value
+            0xffff => self.ie = value,
+            0xff0f => self.ifl = value | 0xe0,
+            _ => {}
         }
 
         if address == 0xff01 || address == 0xff02
@@ -125,13 +148,22 @@ impl Bus
         let mut buff = Vec::new();
         let _ = file.read_to_end(&mut buff);
 
-        for (i, &byte) in buff.iter().enumerate()
+        let mut memory: Vec<u8> = [].to_vec();
+    
+        for &byte in buff.iter()
         {
-            if i < 0x10000
-            {
-                self.memory[i] = byte;
-            }
+            memory.push(byte);
         }
+
+        let carType = memory[0x0147];
+
+        let controller = match carType
+        {
+            0x00 => Box::new(NoMBC::new(memory)),
+            _ => Box::new(NoMBC::new(memory)),
+        };
+
+        self.mbc = controller;
 
         println!("ROM has loaded successfully!")
     }

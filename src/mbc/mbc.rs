@@ -1,0 +1,10 @@
+mod nombc;
+
+pub trait MBC
+{
+    fn readRom(&self, address: u16) -> u8;
+    fn writeRom(&mut self, address: u16, value: u8);
+
+    fn readRam(&self, address: u16) -> u8;
+    fn writeRam(&mut self, address: u16, value: u8);
+}
