@@ -148,19 +148,12 @@ impl Bus
         let mut buff = Vec::new();
         let _ = file.read_to_end(&mut buff);
 
-        let mut memory: Vec<u8> = [].to_vec();
-    
-        for &byte in buff.iter()
-        {
-            memory.push(byte);
-        }
-
-        let carType = memory[0x0147];
+        let carType = buff[0x0147];
 
         let controller = match carType
         {
-            0x00 => Box::new(NoMBC::new(memory)),
-            _ => Box::new(NoMBC::new(memory)),
+            0x00 => Box::new(NoMBC::new(buff)),
+            _ => Box::new(NoMBC::new(buff)),
         };
 
         self.mbc = controller;
