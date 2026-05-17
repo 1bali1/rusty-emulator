@@ -642,10 +642,7 @@ impl CPU
            4 => 0x0060, // Joypad
            _ => panic!("Interrupt failed!")
         };
-        if bitIndex == 2
-        {
-            println!("asdy");
-        }
+
         self.registers.pc = byte;
     }
 

@@ -9,6 +9,7 @@ mod registers;
 mod ppu;
 mod timer;
 mod joypad;
+mod serial;
 
 use cpu::CPU;
 use minifb::{Window, WindowOptions, Key};

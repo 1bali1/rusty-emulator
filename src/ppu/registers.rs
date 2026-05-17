@@ -100,6 +100,7 @@ impl Registers {
             0xff6c => self.opri,
           _ => panic!("PPU Reg addr not found (2) {:X}", address)
         };
+        
         return val;
     }
 

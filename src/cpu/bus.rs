@@ -1,6 +1,7 @@
 use std::{fs::File, io::Read};
 use std::io::{self, Write};
 
+use crate::serial::Serial;
 use crate::timer::Timer;
 use crate::ppu::PPU;
 use crate::joypad::Joypad;
@@ -8,6 +9,7 @@ pub struct Bus
 {
     pub memory: [u8; 0x10000],
     timer: Timer,
+    serial: Serial,
     pub ppu: PPU,
     pub joypad: Joypad,
     pub ie: u8,
@@ -20,6 +22,7 @@ impl Bus
     pub fn new() -> Self
     {
         let timer = Timer::new();
+        let serial = Serial::new();
         let ppu = PPU::new();
         let joypad = Joypad::new();
 
@@ -27,6 +30,7 @@ impl Bus
         { 
             memory: [0; 0x10000], 
             timer: timer,
+            serial: serial,
             ppu: ppu,
             joypad: joypad,
             ie: 0,
@@ -53,21 +57,26 @@ impl Bus
         // joypad interrupts
         self.ifl |= self.joypad.interrupt;
         self.joypad.interrupt = 0;
+
+        // serial step & interrupt request handling
+        self.serial.step(cycles);
+
+        self.ifl |= self.serial.interrupt;
+        self.serial.interrupt = 0;
     }
 
     pub fn read(&self, address: u16) -> u8
     {
         let val = match address
         {
-            0xfe00..0xfe9f => self.ppu.readOam(address),
-            0x8000..0x9fff => self.ppu.readVram(address),
-            0xff04..0xff07 => self.timer.read(address),
-            0xff40..0xff55 | 0xff68..0xff6c => self.ppu.registers.read(address),
+            0xfe00..=0xfe9f => self.ppu.readOam(address),
+            0x8000..=0x9fff => self.ppu.readVram(address),
+            0xff04..=0xff07 => self.timer.read(address),
+            0xff40..=0xff55 | 0xff68..=0xff6c => self.ppu.registers.read(address),
             0xffff => self.ie,
             0xff0f => self.ifl,
             0xff00 => self.joypad.read(),
-            0xff01 => 0xff, // ! temporary
-            0xff02 => 0xff, // ! temporary
+            0xff01..=0xff02 => self.serial.read(address),
             _ => self.memory[address as usize]
         };
 
@@ -79,14 +88,14 @@ impl Bus
         match address 
         {           
             0xff46 => self.dmaTransfer(value),
-            0xfe00..0xfe9f => self.ppu.writeOam(address, value),
-            0x8000..0x9fff => self.ppu.writeVram(address, value),
-            0xff04..0xff07 => self.timer.write(address, value),
-            0xff40..0xff55 | 0xff68..0xff6c => self.ppu.registers.write(address, value),
+            0xfe00..=0xfe9f => self.ppu.writeOam(address, value),
+            0x8000..=0x9fff => self.ppu.writeVram(address, value),
+            0xff04..=0xff07 => self.timer.write(address, value),
+            0xff40..=0xff55 | 0xff68..=0xff6c => self.ppu.registers.write(address, value),
             0xffff => self.ie = value,
             0xff0f => self.ifl = value | 0xe0,
             0xff00 => self.joypad.write(value),
-            // 0xff02 => self.ifl |= 0x08, // ! temporary
+            0xff01..=0xff02 => self.serial.write(address, value),
             _ => self.memory[address as usize] = value
         }
 
