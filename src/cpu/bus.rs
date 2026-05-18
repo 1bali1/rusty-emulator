@@ -4,6 +4,7 @@ use std::io::{self, Write};
 use crate::mbc::MBC;
 use crate::nombc::NoMBC;
 use crate::mbc1::MBC1;
+use crate::mbc3::MBC3;
 use crate::serial::Serial;
 use crate::timer::Timer;
 use crate::ppu::PPU;
@@ -151,9 +152,10 @@ impl Bus
 
         let carType = buff[0x0147];
 
-        let controller = match carType
+        let controller: Box<dyn MBC> = match carType
         {
-            // 0x00 => Box::new(NoMBC::new(buff)),
+            0x00 => Box::new(NoMBC::new(buff)),
+            0x13 => Box::new(MBC3::new(buff)),
             _ => 
             {
                 println!("0x{:x}", carType);

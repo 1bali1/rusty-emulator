@@ -10,8 +10,6 @@ pub struct MBC1
     bankMode: BankingMode
 }
 
-const BUGGED_BANKS: [u8; 4] = [0x00, 0x20, 0x40, 0x60];
-
 impl MBC1
 {
     pub fn new(memory: Vec<u8>) -> Self
