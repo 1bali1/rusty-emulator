@@ -55,7 +55,7 @@ impl CPU
         cpu.instructions[0x0f] = CPU::rrca;
         
         // 0x10
-        cpu.instructions[0x10] = CPU::notImplemented;
+        cpu.instructions[0x10] = CPU::stop;
         cpu.instructions[0x11] = CPU::ldDe;
         cpu.instructions[0x12] = CPU::ldDeAddressA;
         cpu.instructions[0x13] = CPU::incDe;
@@ -262,7 +262,7 @@ impl CPU
         cpu.instructions[0xd0] = CPU::retNc;
         cpu.instructions[0xd1] = CPU::popDe;
         cpu.instructions[0xd2] = CPU::jpNc;
-        cpu.instructions[0xd3] = CPU::notImplemented;
+        cpu.instructions[0xd3] = CPU::notImplemented; // %
         cpu.instructions[0xd4] = CPU::callNc;
         cpu.instructions[0xd5] = CPU::pushDe;
         cpu.instructions[0xd6] = CPU::subA;
@@ -297,7 +297,7 @@ impl CPU
         cpu.instructions[0xf1] = CPU::popAf;
         cpu.instructions[0xf2] = CPU::ldhAAddressC;
         cpu.instructions[0xf3] = CPU::di;
-        cpu.instructions[0xf4] = CPU::notImplemented;
+        cpu.instructions[0xf4] = CPU::notImplemented; // !
         cpu.instructions[0xf5] = CPU::pushAf;
         cpu.instructions[0xf6] = CPU::orA;
         cpu.instructions[0xf7] = CPU::rst30;
@@ -1175,6 +1175,14 @@ impl CPU
         self.registers.setFlag(Registers::MASK_SUBTRACT_N, false);
         self.registers.setFlag(Registers::MASK_HALF_CARRY_H, false);
         self.registers.setFlag(Registers::MASK_CARRY_C, byte == 1);
+
+        return 4;
+    }
+
+    // STOP
+    fn stop(&mut self) -> u8
+    {
+        println!("stopped");
 
         return 4;
     }

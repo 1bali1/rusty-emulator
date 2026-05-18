@@ -14,6 +14,8 @@ mod serial;
 mod mbc;
 #[path = "mbc/nombc.rs"]
 mod nombc;
+#[path = "mbc/mbc1.rs"]
+mod mbc1;
 
 use cpu::CPU;
 use minifb::{Window, WindowOptions, Key};
@@ -30,7 +32,7 @@ fn main()
 
     let mut cpu = CPU::new();
 
-    let gbName = String::from("tetris.gb");
+    let gbName = String::from("loz.gb");
     cpu.bus.loadRom(&gbName);
     
     loop

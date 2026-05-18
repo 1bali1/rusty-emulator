@@ -119,7 +119,7 @@ impl Registers {
             0xff49 => self.obp1 = value,
             0xff4a => self.wy = value,
             0xff4b => self.wx = value,
-            0xff4f => self.vbank = value,
+            0xff4f => self.vbank = value & 0x01,
             0xff51 => self.hdma1 = value,
             0xff52 => self.hdma2 = value,
             0xff53 => self.hdma3 = value,

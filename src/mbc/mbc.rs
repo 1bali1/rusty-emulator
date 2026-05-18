@@ -1,4 +1,12 @@
 mod nombc;
+mod mbc1;
+
+#[derive(PartialEq)]
+pub enum BankingMode
+{
+    Simple,
+    Advanced
+}
 
 pub trait MBC
 {
