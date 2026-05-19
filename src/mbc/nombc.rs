@@ -7,7 +7,7 @@ pub struct NoMBC
 
 impl NoMBC
 {
-    pub fn new(memory: Vec<u8>) -> Self
+    pub fn new(memory: Vec<u8>, _gameName: &String) -> Self
     {
         let noMbc = Self
         {
@@ -35,4 +35,7 @@ impl MBC for NoMBC
     }
 
     fn writeRam(&mut self, _address: u16, _value: u8) { }
+
+    fn saveRam(&self) { }
+    fn loadSave(&mut self) { }
 }

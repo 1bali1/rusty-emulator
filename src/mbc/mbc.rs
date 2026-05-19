@@ -16,4 +16,7 @@ pub trait MBC
 
     fn readRam(&self, address: u16) -> u8;
     fn writeRam(&mut self, address: u16, value: u8);
+
+    fn saveRam(&self);
+    fn loadSave(&mut self);
 }

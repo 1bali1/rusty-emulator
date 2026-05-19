@@ -1,3 +1,5 @@
+use std::{fs::{self, File}, io::{Read, Write}};
+
 use crate::mbc::{BankingMode, MBC};
 
 pub struct MBC1
@@ -7,12 +9,13 @@ pub struct MBC1
     ramEnabled: bool,
     romBank: u8,
     ramBank: u8,
-    bankMode: BankingMode
+    bankMode: BankingMode,
+    gameName: String
 }
 
 impl MBC1
 {
-    pub fn new(memory: Vec<u8>) -> Self
+    pub fn new(memory: Vec<u8>, gameName: &String) -> Self
     {
         let mbc1 = Self
         {
@@ -21,7 +24,8 @@ impl MBC1
             ramEnabled: false,
             romBank: 1,
             ramBank: 0,
-            bankMode: BankingMode::Simple
+            bankMode: BankingMode::Simple,
+            gameName: gameName.to_owned()
         };
 
         return mbc1;
@@ -82,7 +86,17 @@ impl MBC for MBC1
             0x6000..=0x7fff => if (value & 0x01) == 1 { self.bankMode = BankingMode::Advanced } else { self.bankMode = BankingMode::Simple },
             0x4000..=0x5fff => self.ramBank = value & 0x03,
             0x2000..=0x3fff => self.romBank = if (value & 0x1f) == 0 { 1 } else { value & 0x1f },
-            0x0000..=0x1fff => if (value & 0xf) == 0xa { self.ramEnabled = true; } else { self.ramEnabled = false; }
+            0x0000..=0x1fff => if (value & 0xf) == 0xa { self.ramEnabled = true; } else 
+                {
+                    let prevMode = self.ramEnabled;
+
+                    if prevMode
+                    {
+                        self.saveRam();
+                    }
+
+                    self.ramEnabled = false; 
+                }
             _ => {}
         }
     }
@@ -105,5 +119,34 @@ impl MBC for MBC1
         let ramAddress = self.getRamAddress(address);
 
         self.ram[ramAddress] = value;
+    }
+
+    fn saveRam(&self) 
+    {
+        let _ = fs::create_dir_all("saves");
+        let filePath = format!("saves/{}.sav", self.gameName);
+
+        if let Ok(mut file) = File::create(filePath)
+        {
+            let _ = file.write_all(&self.ram);
+        }
+    }
+
+    fn loadSave(&mut self)
+    {
+        let _ = fs::create_dir_all("saves");
+        let filePath = format!("saves/{}.sav", self.gameName);
+
+        if let Ok(mut file) = File::open(filePath)
+        {
+            self.ram.clear();
+            let _ = file.read_to_end(&mut self.ram);
+
+            if self.ram.len() < 0x8000 { self.ram = vec![0; 0x8000] }
+            else
+            {
+                println!("Save loaded!");
+            }
+        }
     }
 }

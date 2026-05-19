@@ -35,7 +35,7 @@ impl Bus
 
         let bus = Self 
         { 
-            mbc: Box::new(NoMBC::new([0].to_vec())),
+            mbc: Box::new(NoMBC::new([0].to_vec(), &"".to_string())),
             wram: [0; 8192],
             hram: [0; 127],
             timer: timer,
@@ -152,19 +152,24 @@ impl Bus
 
         let carType = buff[0x0147];
 
+        let titleBytes = &buff[0x0134..=0x0143];
+        let untrimmed = String::from_utf8_lossy(titleBytes);
+        let title = untrimmed.trim_matches(char::from(0x00)).trim();
+
         let controller: Box<dyn MBC> = match carType
         {
-            0x00 => Box::new(NoMBC::new(buff)),
-            0x13 => Box::new(MBC3::new(buff)),
+            0x00 => Box::new(NoMBC::new(buff.to_owned(), &title.to_string())),
+            0x13 => Box::new(MBC3::new(buff.to_owned(), &title.to_string())),
             _ => 
             {
                 println!("0x{:x}", carType);
 
-                Box::new(MBC1::new(buff))
+                Box::new(MBC1::new(buff.to_owned(), &title.to_string()))
             }
         };
 
         self.mbc = controller;
+        self.mbc.loadSave();
 
         println!("ROM has loaded successfully!")
     }

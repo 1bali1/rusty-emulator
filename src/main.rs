@@ -7,6 +7,8 @@ mod cpu;
 mod registers;
 #[path = "ppu/ppu.rs"]
 mod ppu;
+#[path ="apu/apu.rs"]
+mod apu;
 mod timer;
 mod joypad;
 mod serial;
@@ -20,21 +22,28 @@ mod mbc1;
 mod mbc3;
 
 use cpu::CPU;
+
+use std::{env, fs::{self}};
 use minifb::{Window, WindowOptions, Key};
 
 fn main() 
 {
+    let args: Vec<String> = env::args().collect();
+
+    let _ = fs::create_dir_all("roms");
+
     let winOptions = WindowOptions
     {
         scale: minifb::Scale::X4,
         ..Default::default()
     };
+
     let mut window = Window::new("Rusty Emulator", 160, 144, winOptions).unwrap();
     window.set_target_fps(60);
 
     let mut cpu = CPU::new();
+    let gbName = format!("{}.gb", args[1]);
 
-    let gbName = String::from("pokemonred.gb");
     cpu.bus.loadRom(&gbName);
     
     loop
