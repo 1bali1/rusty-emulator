@@ -1,6 +1,9 @@
 use std::{fs::File, io::Read};
 use std::io::{self, Write};
 
+use ringbuf::HeapProd;
+
+use crate::apu::APU;
 use crate::mbc::MBC;
 use crate::nombc::NoMBC;
 use crate::mbc1::MBC1;
@@ -19,6 +22,7 @@ pub struct Bus
     serial: Serial,
     pub ppu: PPU,
     pub joypad: Joypad,
+    apu: APU,
     pub ie: u8,
     pub ifl: u8
 }
@@ -26,12 +30,13 @@ pub struct Bus
 // TODO: remove memory vec
 impl Bus 
 {
-    pub fn new() -> Self
+    pub fn new(audioSampleRate: u32, audioProducer: HeapProd<f32>) -> Self
     {
         let timer = Timer::new();
         let serial = Serial::new();
         let ppu = PPU::new();
         let joypad = Joypad::new();
+        let apu = APU::new(audioSampleRate, audioProducer);
 
         let bus = Self 
         { 
@@ -42,6 +47,7 @@ impl Bus
             serial: serial,
             ppu: ppu,
             joypad: joypad,
+            apu: apu,
             ie: 0,
             ifl: 0
         };
@@ -72,6 +78,9 @@ impl Bus
 
         self.ifl |= self.serial.interrupt;
         self.serial.interrupt = 0;
+
+        // apu step
+        self.apu.tick(cycles);
     }
 
     pub fn read(&self, address: u16) -> u8
@@ -89,6 +98,7 @@ impl Bus
             0xfea0..=0xfeff => 0xff,
             // io ranges
             0xff04..=0xff07 => self.timer.read(address),
+            0xff15..=0xff19 => self.apu.read(address),
             0xff40..=0xff4b | 0xff4f | 0xff51..=0xff55 | 0xff68..=0xff6c => self.ppu.registers.read(address),
             0xff00 => self.joypad.read(),
             0xff01..=0xff02 => self.serial.read(address),
@@ -115,6 +125,7 @@ impl Bus
             0xfea0..=0xfeff => {},
             // io ranges
             0xff04..=0xff07 => self.timer.write(address, value),
+            0xff15..=0xff19 => self.apu.write(address, value),
             0xff46 => self.dmaTransfer(value),
             0xff40..=0xff4b | 0xff4f | 0xff51..=0xff55 | 0xff68..=0xff6c => self.ppu.registers.write(address, value),
             0xff00 => self.joypad.write(value),

@@ -21,7 +21,10 @@ mod mbc1;
 #[path = "mbc/mbc3.rs"]
 mod mbc3;
 
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpu::CPU;
+use ringbuf::HeapRb;
+use ringbuf::traits::{Consumer, Split};
 
 use std::{env, fs::{self}};
 use minifb::{Window, WindowOptions, Key};
@@ -29,9 +32,9 @@ use minifb::{Window, WindowOptions, Key};
 fn main() 
 {
     let args: Vec<String> = env::args().collect();
-
     let _ = fs::create_dir_all("roms");
 
+    // window
     let winOptions = WindowOptions
     {
         scale: minifb::Scale::X4,
@@ -41,7 +44,40 @@ fn main()
     let mut window = Window::new("Rusty Emulator", 160, 144, winOptions).unwrap();
     window.set_target_fps(60);
 
-    let mut cpu = CPU::new();
+    // audio
+    let host = cpal::default_host();
+    let device = host.default_output_device().expect("Error");
+    let audioConfig = device.default_output_config().unwrap().config(); // this shit needs expect
+    let sampleRate = audioConfig.sample_rate;
+    let channels = audioConfig.channels as usize;
+
+    // thread safe puffer
+    let rb = HeapRb::<f32>::new(4096);
+    let (producer, mut consumer) = rb.split();
+
+    let stream = device.build_output_stream(
+        &audioConfig, 
+        move |data: &mut [f32], _|
+        {
+            for frame in data.chunks_mut(channels)
+            {
+                // we shoud mute if theres no sample
+                let sample = consumer.try_pop().unwrap_or(0.0);
+
+                for dest in frame
+                {
+                    *dest = sample;
+                }
+            }
+        },
+        |error| panic!("Audio error: {}", error), 
+        None
+    ).unwrap();
+
+    stream.play().unwrap();
+
+    // cpu steup
+    let mut cpu = CPU::new(sampleRate, producer);
     let gbName = format!("{}.gb", args[1]);
 
     cpu.bus.loadRom(&gbName);

@@ -1,4 +1,6 @@
 use core::panic;
+use ringbuf::HeapProd;
+
 use crate::bus::Bus;
 use crate::registers::Registers;
 
@@ -25,14 +27,14 @@ pub struct CPU
 
 impl CPU
 {
-    pub fn new() -> Self
+    pub fn new(audioSampleRate: u32, audioProducer: HeapProd<f32>) -> Self
     {
         let mut cpu = Self 
         {
             registers: Registers::new(),
             isHalted: false,
             haltBug: false,
-            bus: Bus::new(),
+            bus: Bus::new(audioSampleRate, audioProducer),
             imeState: ImeState::Disabled,
             instructions: [CPU::nop; 256],
             prefixedInstructions: [CPU::nop; 256]
