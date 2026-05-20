@@ -98,7 +98,7 @@ impl Bus
             0xfea0..=0xfeff => 0xff,
             // io ranges
             0xff04..=0xff07 => self.timer.read(address),
-            0xff10..=0xff19 => self.apu.read(address),
+            0xff10..=0xff26 => self.apu.read(address),
             0xff40..=0xff4b | 0xff4f | 0xff51..=0xff55 | 0xff68..=0xff6c => self.ppu.registers.read(address),
             0xff00 => self.joypad.read(),
             0xff01..=0xff02 => self.serial.read(address),
@@ -125,7 +125,7 @@ impl Bus
             0xfea0..=0xfeff => {},
             // io ranges
             0xff04..=0xff07 => self.timer.write(address, value),
-            0xff10..=0xff19 => self.apu.write(address, value),
+            0xff10..=0xff26 => self.apu.write(address, value),
             0xff46 => self.dmaTransfer(value),
             0xff40..=0xff4b | 0xff4f | 0xff51..=0xff55 | 0xff68..=0xff6c => self.ppu.registers.write(address, value),
             0xff00 => self.joypad.write(value),
