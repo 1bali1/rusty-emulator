@@ -6,6 +6,7 @@ use ringbuf::HeapProd;
 
 use crate::apu::APU;
 use crate::mbc::MBC;
+use crate::mbc5::MBC5;
 use crate::nombc::NoMBC;
 use crate::mbc1::MBC1;
 use crate::mbc3::MBC3;
@@ -26,7 +27,7 @@ pub fn getEmuMode() -> bool
     return IS_GGB.load(Ordering::Relaxed);
 }
 
-pub struct Bus 
+pub struct Bus
 {
     pub mbc: Box<dyn MBC>,
     wram: [u8; 8192*8],
@@ -77,6 +78,14 @@ impl Bus
 
         self.ifl |= self.ppu.registers.interrupt;
         self.ppu.registers.interrupt = 0;
+
+        if self.ppu.registers.shouldTransfer
+        {
+            if self.ppu.registers.hdma.mode == 1 { self.doHdma(); }
+            else { self.doGpdma() }
+            
+            self.ppu.registers.shouldTransfer = false;
+        }
 
         // timer step & interrupt request handling
         self.timer.tick(cycles);
@@ -209,7 +218,9 @@ impl Bus
         let controller: Box<dyn MBC> = match carType
         {
             0x00 => Box::new(NoMBC::new(buff.to_owned(), &title.to_string())),
-            0x13 => Box::new(MBC3::new(buff.to_owned(), &title.to_string())),
+            0x01 | 0x02 | 0x03 => Box::new(MBC1::new(buff.to_owned(), &title.to_string())),
+            0x0f | 0x10 | 0x11 | 0x12 | 0x13 => Box::new(MBC3::new(buff.to_owned(), &title.to_string())),
+            0x19 | 0x1a | 0x1b | 0x1c | 0x1d | 0x1e => Box::new(MBC5::new(buff.to_owned(), &title.to_string())),
             _ => 
             {
                 println!("0x{:x}", carType);
@@ -222,5 +233,40 @@ impl Bus
         self.mbc.loadSave();
 
         println!("ROM has loaded successfully!")
+    }
+
+    fn doHdma(&mut self)
+    {
+        self.transferBytes();
+
+        if self.ppu.registers.hdma.length == 0xff { self.ppu.registers.hdma.active = false; }
+        else { self.ppu.registers.hdma.length = self.ppu.registers.hdma.length.wrapping_add(1); }
+    }
+
+    fn transferBytes(&mut self)
+    {
+        for _ in 0..16
+        {
+            let src = self.read(self.ppu.registers.hdma.source);
+            let destAddress = self.ppu.registers.hdma.dest;
+
+            self.write(destAddress, src);
+
+            self.ppu.registers.hdma.source = self.ppu.registers.hdma.source.wrapping_add(1);
+            self.ppu.registers.hdma.dest = self.ppu.registers.hdma.dest.wrapping_add(1);
+        }
+    }
+
+    fn doGpdma(&mut self)
+    {
+        let blocks = (self.ppu.registers.hdma.length & 0x7f) + 1;
+
+        for _ in 0..blocks
+        {
+            self.transferBytes();
+        }
+
+        self.ppu.registers.hdma.length = 0xFF; 
+        self.ppu.registers.hdma.active = false;
     }
 }

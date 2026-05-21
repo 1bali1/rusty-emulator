@@ -19,11 +19,7 @@ pub struct Registers
 
     // colored
     pub vbank: u8,
-    pub hdma1: u8,
-    pub hdma2: u8,
-    pub hdma3: u8,
-    pub hdma4: u8,
-    pub hdma5: u8, // 0-6 len ; 7. mode : 0|gdma 1|hblank dma
+    pub hdma: HDMA,
 
     // object color palette specification
     pub bcps: u8,
@@ -41,6 +37,16 @@ pub struct Registers
     // cram
     pub bgPaletteRam: [u8; 64],
     pub objPaletteRam: [u8; 64],
+    pub shouldTransfer: bool
+}
+
+pub struct HDMA
+{
+    pub active: bool,
+    pub mode: u8,
+    pub length: u8,
+    pub source: u16,
+    pub dest: u16
 }
 
 impl Registers {
@@ -63,11 +69,7 @@ impl Registers {
             yCon: false,
             wlc: 0,
             vbank: 0,
-            hdma1: 0,
-            hdma2: 0,
-            hdma3: 0,
-            hdma4: 0,
-            hdma5: 0,
+            hdma: HDMA { active: false, mode: 0, length: 0, source: 0, dest: 0 },
             bcps: 0,
             bcpd: 0,
             bpi: 0,
@@ -78,6 +80,7 @@ impl Registers {
             interrupt: 0,
             bgPaletteRam: [0; 64],
             objPaletteRam: [0; 64],
+            shouldTransfer: false
         };
         
         return registers;
@@ -99,11 +102,21 @@ impl Registers {
             0xff4a => self.wy,
             0xff4b => self.wx,
             0xff4f => self.vbank,
-            0xff51 => self.hdma1,
-            0xff52 => self.hdma2,
-            0xff53 => self.hdma3,
-            0xff54 => self.hdma4,
-            0xff55 => self.hdma5,
+            0xff51 => ((self.hdma.source >> 8) & 0x1f) as u8,
+            0xff52 => self.hdma.source as u8,
+            0xff53 => ((self.hdma.dest >> 8) & 0x1f) as u8,
+            0xff54 => self.hdma.dest as u8,
+            0xff55 =>
+            { 
+                if self.hdma.active
+                {
+                    self.hdma.length
+                }
+                else 
+                {
+                    self.hdma.length | 0x80
+                }
+            },
             0xff68 => self.bcps | self.bpi,
             0xff69 => self.bgPaletteRam[self.bpi as usize],
             0xff6a => self.ocps | self.opi,
@@ -131,11 +144,35 @@ impl Registers {
             0xff4a => self.wy = value,
             0xff4b => self.wx = value,
             0xff4f => self.vbank = value & 0x01,
-            0xff51 => self.hdma1 = value,
-            0xff52 => self.hdma2 = value,
-            0xff53 => self.hdma3 = value,
-            0xff54 => self.hdma4 = value,
-            0xff55 => self.hdma5 = value,
+            0xff51 => self.hdma.source = (self.hdma.source & !0xff00) | (value as u16) << 8,
+            0xff52 => self.hdma.source = (self.hdma.source & 0xff00) | value as u16,
+            0xff53 => self.hdma.dest = (self.hdma.dest & !0xff00) | (value as u16) << 8,
+            0xff54 => self.hdma.dest = (self.hdma.dest & 0xff00) | value as u16,
+            0xff55 =>
+            {
+                let mode = (value >> 7) & 0x01;
+                let blocks = value & 0x7f;
+
+                if self.hdma.active && mode == 1
+                {
+                    if (value & 0x80) == 0 { self.hdma.active = false }
+                }
+                else 
+                {
+                    self.hdma.mode = mode;
+                    self.hdma.length = blocks;
+
+                    if mode == 0
+                    {
+                        self.shouldTransfer = true;
+                        self.hdma.active = false;
+                    }
+                    else
+                    {
+                        self.hdma.active = true;
+                    }
+                }
+            },
             0xff68 => 
             {
                 self.bcps = value & 0x80;

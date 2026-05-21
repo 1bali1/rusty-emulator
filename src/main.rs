@@ -20,6 +20,8 @@ mod nombc;
 mod mbc1;
 #[path = "mbc/mbc3.rs"]
 mod mbc3;
+#[path = "mbc/mbc5.rs"]
+mod mbc5;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpu::CPU;

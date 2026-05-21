@@ -2,52 +2,51 @@ use std::{fs::{self, File}, io::{Read, Write}};
 
 use crate::{mbc::MBC};
 
-// TODO: RTC
-pub struct MBC3
+pub struct MBC5
 {
     rom: Vec<u8>,
     ram: Vec<u8>,
-    romBank: u8,
+    romBank: u16,
     ramBank: u8,
-    ramAndRTCEnabled: bool,
+    ramEnabled: bool,
     hasBattery: bool,
     gameName: String
 }
 
-const BATTERY_TYPES: [u8; 3]  = [0x0f, 0x10, 0x13];
+const BATTERY_TYPES: [u8; 3]  = [0x13, 0x1b, 0x1e];
 
 
-impl MBC3
+impl MBC5
 {
     pub fn new(memory: Vec<u8>, gameName: &String) -> Self
     {
         let mbcType = memory[0x0147];
         let hasBattery = BATTERY_TYPES.contains(&mbcType);
 
-        let mbc3 = Self
+        let mbc5 = Self
         {
             rom: memory,
-            ram: vec![0; 0x4000],
+            ram: vec![0; 0x20000],
             romBank: 1,
             ramBank: 0,
-            ramAndRTCEnabled: false,
+            ramEnabled: false,
             hasBattery: hasBattery,
             gameName: gameName.to_owned()
         };
 
-        return mbc3;
+        return mbc5;
     }
 
     fn getRamAddress(&self, address: u16) -> usize
     {
         let offset = (address - 0xa000) as usize;
-        let ramAddres = ((self.ramBank as usize * 0x2000) as usize + offset) % self.ram.len();
+        let ramAddres = (((self.ramBank & 0xf) as usize * 0x2000) as usize + offset) % self.ram.len();
 
         return ramAddres;
     }
 }
 
-impl MBC for MBC3
+impl MBC for MBC5
 {
     fn readRom(&self, address: u16) -> u8 
     {
@@ -68,19 +67,20 @@ impl MBC for MBC3
     {
         match address 
         {
-            0x0000..=0x1fff => if (value & 0xf) == 0xa { self.ramAndRTCEnabled = true } else 
+            0x0000..=0x1fff => if (value & 0xf) == 0xa { self.ramEnabled = true } else 
                 {
-                    let prevMode = self.ramAndRTCEnabled;
+                    let prevMode = self.ramEnabled;
 
                     if prevMode
                     {
                         self.saveRam();
                     }
 
-                    self.ramAndRTCEnabled = false; 
+                    self.ramEnabled = false; 
                 },
-            0x2000..=0x3fff => if (value & 0x7f) == 0 { self.romBank = 1 } else { self.romBank = value },
-            0x4000..=0x5fff => self.ramBank = value & 0x3,
+            0x2000..=0x2fff => self.romBank = (self.romBank & 0x100) | value as u16,
+            0x3000..=0x3fff => self.romBank = (self.romBank & 0xff) | ((value & 0x01) as u16) << 8,
+            0x4000..=0x5fff => self.ramBank = value,
             0x6000..=0x7fff => {},
             _ => {}
         }    
@@ -88,33 +88,22 @@ impl MBC for MBC3
 
     fn readRam(&self, address: u16) -> u8 
     {
-        if !self.ramAndRTCEnabled { return 0xff; }
+        if !self.ramEnabled { return 0xff; }
 
-        let val = match self.ramBank
-        {
-            0x00..=0x03 => 
-            {
-                let address = self.getRamAddress(address);
+        let address = self.getRamAddress(address);
 
-                return self.ram[address];
-            },
-            _ => 0xff
-        };
-
+        let val = self.ram[address];
+      
         return val;
     }
 
     fn writeRam(&mut self, address: u16, value: u8) 
     {
-        if !self.ramAndRTCEnabled { return; }
+        if !self.ramEnabled { return; }
 
         let address = self.getRamAddress(address);
 
-        match self.ramBank
-        {
-            0x00..=0x03 => self.ram[address] = value,
-            _ => {}
-        };
+        self.ram[address] = value;
     }
 
     fn saveRam(&self) 

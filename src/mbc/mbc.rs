@@ -1,6 +1,7 @@
 mod nombc;
 mod mbc1;
 mod mbc3;
+mod mbc5;
 
 #[derive(PartialEq)]
 pub enum BankingMode

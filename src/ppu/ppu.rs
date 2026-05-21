@@ -41,7 +41,7 @@ pub struct PPU
     vram: [[u8; 8192]; 2],
     pub oam: [u8; 160],
     sprites: Vec<Sprite>,
-    mode: Mode
+    mode: Mode,
 }
 
 const MAX_SPRITES_PER_LINE: usize = 10;
@@ -82,15 +82,9 @@ impl PPU {
 
         self.cycles += cycles as usize;
 
-        self.doMode(self.mode);
-    }
+        self.setMode(self.mode);
 
-    // TODO: pixel-perfect simulation
-    fn doMode(&mut self, mode: Mode)
-    {
-        self.setMode(mode);
-
-        match mode {
+        match self.mode {
             Mode::VBlank => self.vblank(),
             Mode::HBlank => self.hblank(),
             Mode::PixelTransfer => self.pixelTransfer(),
@@ -126,6 +120,11 @@ impl PPU {
         {
             self.cycles -= 204;
             self.registers.incLy();
+
+            if self.registers.hdma.active && self.registers.hdma.mode == 1
+            {
+                self.registers.shouldTransfer = true;
+            }
 
             if self.registers.ly == 144
             {
@@ -279,7 +278,7 @@ impl PPU {
 
             let colorId = (cbit1 << 1) | cbit0;
 
-            let screenPos = (ly as usize * 160 + x as usize) as usize;
+            let screenPos = (ly as usize * 160) + x as usize;
 
             let color: u32 = if getEmuMode()
             {

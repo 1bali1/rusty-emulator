@@ -10,13 +10,20 @@ pub struct MBC1
     romBank: u8,
     ramBank: u8,
     bankMode: BankingMode,
-    gameName: String
+    gameName: String,
+    hasBattery: bool
 }
+
+const BATTERY_TYPES: [u8; 1] = [0x03];
 
 impl MBC1
 {
     pub fn new(memory: Vec<u8>, gameName: &String) -> Self
     {
+
+        let mbcType = memory[0x0147];
+        let hasBattery = BATTERY_TYPES.contains(&mbcType);
+
         let mbc1 = Self
         {
             rom: memory,
@@ -25,7 +32,8 @@ impl MBC1
             romBank: 1,
             ramBank: 0,
             bankMode: BankingMode::Simple,
-            gameName: gameName.to_owned()
+            gameName: gameName.to_owned(),
+            hasBattery: hasBattery
         };
 
         return mbc1;
@@ -123,6 +131,8 @@ impl MBC for MBC1
 
     fn saveRam(&self) 
     {
+        if !self.hasBattery { return; }
+
         let _ = fs::create_dir_all("saves");
         let filePath = format!("saves/{}.sav", self.gameName);
 
@@ -134,6 +144,8 @@ impl MBC for MBC1
 
     fn loadSave(&mut self)
     {
+        if !self.hasBattery { return; }
+
         let _ = fs::create_dir_all("saves");
         let filePath = format!("saves/{}.sav", self.gameName);
 
