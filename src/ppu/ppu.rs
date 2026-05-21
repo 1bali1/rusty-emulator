@@ -3,11 +3,8 @@ mod registers;
 
 use registers::Registers;
 
-enum GameBoyVersion
-{
-    DMG,
-    Colored
-}
+use crate::bus::getEmuMode;
+
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 #[repr(u8)]
@@ -39,12 +36,9 @@ pub struct PPU
     cycles: usize,
     pub pixelBuffer: [u32; 160 * 144],
     bgColors: [u8; 160 * 144],
-    version: GameBoyVersion,
     pub frameReady: bool,
     pub registers: Registers,
     vram: [[u8; 8192]; 2],
-    bgPaletteRam: [u8; 64],
-    objPaletteRam: [u8; 64],
     pub oam: [u8; 160],
     sprites: Vec<Sprite>,
     mode: Mode
@@ -61,12 +55,9 @@ impl PPU {
             cycles: 0,
             pixelBuffer: [0; 160 * 144],
             bgColors: [0; 160 * 144],
-            version: GameBoyVersion::DMG,
             frameReady: false,
             registers: Registers::new(),
             vram: [[0; 8192]; 2],
-            bgPaletteRam: [0; 64],
-            objPaletteRam: [0; 64],
             oam: [0; 160],
             sprites: [].to_vec(),
             mode: Mode::OAMSearch
@@ -169,11 +160,11 @@ impl PPU {
             self.cycles -= 80;
             self.setMode(Mode::PixelTransfer);
 
-            self.searhSprites();
+            self.searchSprites();
         }
     }
 
-    fn searhSprites(&mut self)
+    fn searchSprites(&mut self)
     {
         self.sprites.clear();
         
@@ -193,27 +184,27 @@ impl PPU {
             let byte2 = self.oam[spriteAddress + 2];
             let byte3 = self.oam[spriteAddress + 3];
             
-            let yPos = byte0.wrapping_sub(16);
-            let xPos = byte1.wrapping_sub(8);
+            let yPos = byte0 as i32 - 16;
+            let xPos = byte1 as i32 - 8;
 
             //     7    |   6    |   5    |      4      |   3  |   2 1 0
             // Priority | Y flip | X flip | DMG palette | Bank | CGB palette
             let sprite = Sprite
             {
-                y: yPos,
-                x: xPos,
+                y: yPos as u8,
+                x: xPos as u8,
                 yFlip: (byte3 >> 6) & 0x01 == 1,
                 xFlip: (byte3 >> 5) & 0x01 == 1,
                 bank: (byte3 >> 3) & 0x01,
                 dmgPal: (byte3 >> 4) & 0x01 == 1,
-                cgbPal: 0, // TODO: read cgb pal
+                cgbPal: byte3 & 0x7,
                 priority: (byte3 >> 7) & 0x01 == 1,
                 oamIndex: i as u8,
                 size: spriteSize,
                 tileId: byte2
             };
 
-            if !(yPos <= ly && ly < yPos.wrapping_add(spriteSize)) { continue; }
+            if !(yPos <= ly as i32 && (ly as i32) < (yPos + spriteSize as i32)) { continue; }
 
             self.sprites.push(sprite);
 
@@ -246,17 +237,26 @@ impl PPU {
             let yPos = if isWindow { wlc } else { ly.wrapping_add(scy) };
             let xPos = if isWindow { x as u8 - wx } else { (x as u8).wrapping_add(scx) };
             let mapBaseAddr: u16 = if isWindow { if (lcdc >> 6) & 0x01 == 1 { 0x9c00 } else { 0x9800 } } else { if (lcdc >> 3) & 0x01 == 1 { 0x9c00 } else { 0x9800 } };
-            
-            // ? pokemon ver lines
+
             let tileRow = (yPos / 8) as u8;
             let tileCol = (xPos / 8) as u8;
-            let tileLine = (yPos % 8) as u8;
-            let tilePx = 7 - (xPos % 8) as u8;
             
             // * 32 = full matrix
             // ! not sure if + tileCol as u16 will be ok
             let tileMapIndexAddress = mapBaseAddr + (tileRow as u16 * 32) + tileCol as u16;
-            let tileIndex = self.readVram(tileMapIndexAddress);
+            let tileIndex = self.readVram(tileMapIndexAddress, 0);
+
+            let (yFlip, xFlip, vbank, priority) = if getEmuMode()
+            {
+                let tileAttr = self.readVram(tileMapIndexAddress, 1);
+
+                ((tileAttr >> 6) & 0x01, (tileAttr >> 5) & 0x01, (tileAttr >> 3) & 0x01, tileAttr & 0x80)
+            } 
+            else { (0, 0, 0, 0) };
+
+            let tileLine = if yFlip == 0 { (yPos % 8) as u8 } else { 7 - (yPos % 8) as u8 };
+            let tilePx = if xFlip == 0 { 7 - (xPos % 8) as u8 } else { xPos % 8 };
+
 
             let bgWinTiles = (lcdc >> 4) & 0x01 == 1;
             let tileBaseAddr = if bgWinTiles 
@@ -271,8 +271,8 @@ impl PPU {
 
             let tileLineAddr = tileBaseAddr + (tileLine as u16 * 2);
 
-            let lowLine = self.readVram(tileLineAddr);
-            let highLine = self.readVram(tileLineAddr + 1);
+            let lowLine = self.readVram(tileLineAddr, vbank);
+            let highLine = self.readVram(tileLineAddr + 1, vbank);
 
             let cbit0 = (lowLine >> tilePx) & 0x01;
             let cbit1 = (highLine >> tilePx) & 0x01;
@@ -281,8 +281,26 @@ impl PPU {
 
             let screenPos = (ly as usize * 160 + x as usize) as usize;
 
-            self.pixelBuffer[screenPos] = self.getDmgColors(self.registers.bgp, colorId);
-            self.bgColors[screenPos] = colorId;
+            let color: u32 = if getEmuMode()
+            {
+                let tileAttr = self.readVram(tileMapIndexAddress, 1);
+                let colPalette = tileAttr & 0x07;
+                let colIndex = ((colPalette * 4 + colorId) * 2) as usize;
+
+                let lowByte = self.registers.bgPaletteRam[colIndex];
+                let highByte = self.registers.bgPaletteRam[colIndex + 1];
+
+                let gbcColor = ((highByte as u16) << 8) | lowByte as u16;
+
+                self.getGBCColor(gbcColor)
+            }
+            else
+            {
+                self.getDmgColors(self.registers.bgp, colorId)
+            };
+
+            self.pixelBuffer[screenPos] = color;
+            self.bgColors[screenPos] = if priority != 0 { colorId | priority } else { colorId & 0x3 };
         }
 
         if winRendered { self.registers.wlc = self.registers.wlc.wrapping_add(1); }
@@ -290,13 +308,22 @@ impl PPU {
 
     fn renderSprites(&mut self)
     {
-        self.sprites.sort_by(|a, b| {
-            if b.x != a.x {
-                b.x.cmp(&a.x)
-            } else {
-                b.oamIndex.cmp(&a.oamIndex)
-            }
-        });
+        let prioMode = if getEmuMode() { (self.registers.opri >> 7) & 0x01 == 0 } else { false };
+
+        if prioMode
+        {
+            self.sprites.reverse();
+        }
+        else 
+        {
+            self.sprites.sort_by(|a, b| {
+                if b.x != a.x {
+                    b.x.cmp(&a.x)
+                } else {
+                    b.oamIndex.cmp(&a.oamIndex)
+                }
+            });
+        }
         
         let ly = self.registers.ly;
 
@@ -321,9 +348,13 @@ impl PPU {
 
             let lowLine = self.vram[sprite.bank as usize][tileAddress as usize];
             let highLine = self.vram[sprite.bank as usize][tileAddress as usize + 1];
-
+            
             for x in 0..8
             {
+                let fullX = sprite.x as i32 + x as i32;
+
+                if fullX < 0 || fullX >= 160 { continue; }
+
                 let px = if sprite.xFlip { x } else { 7 - x };
                 let pxPos = (ly as usize * 160) + sprite.x.wrapping_add(x) as usize;
 
@@ -331,20 +362,61 @@ impl PPU {
                 let cbit1 = (highLine >> px) & 0x01;
 
                 let colorId = (cbit1 << 1) | cbit0;
+                let bgColorId = self.bgColors[pxPos] & 0x3;
+                let masterPrio = self.registers.lcdc & 0x01 != 0;
+                let bgHasPrio = self.bgColors[pxPos] & 0x80 != 0;
 
-                if sprite.priority && self.bgColors[pxPos] != 0 { continue; }
                 if colorId == 0 { continue; }
+
+                let hasPriority = if prioMode
+                {
+                    if !masterPrio { true }
+                    else 
+                    {
+                        if bgColorId == 0 { true }
+                        else if bgHasPrio { false }
+                        else if sprite.priority { false }
+                        else { true }    
+                    }
+                }
+                else
+                {   
+                    if bgColorId == 0 { true }
+                    else if sprite.priority { false }
+                    else { true }
+                };
+
+                if !hasPriority { continue; }
 
                 let palette = if sprite.dmgPal { self.registers.obp1 } else { self.registers.obp0 };
 
-                self.pixelBuffer[pxPos] = self.getDmgColors(palette, colorId);
+                let color: u32 = if getEmuMode()
+                {
+                    let colPalette = sprite.cgbPal;
+
+                    let colIndex = ((colPalette * 4 + colorId) * 2) as usize;
+
+                    let lowByte = self.registers.objPaletteRam[colIndex];
+                    let highByte = self.registers.objPaletteRam[colIndex + 1];
+
+                    let gbcColor = ((highByte as u16) << 8) | lowByte as u16;
+
+                    self.getGBCColor(gbcColor)
+                }
+                else
+                {
+                    self.getDmgColors(palette, colorId)
+                };
+
+                self.pixelBuffer[pxPos] = color;
             }
         }
 
         self.sprites.clear();
     }
 
-    fn getDmgColors(&self, pal: u8, colorId: u8) -> u32 {
+    fn getDmgColors(&self, pal: u8, colorId: u8) -> u32 
+    {
         let color = (pal >> (colorId * 2)) & 0x03;
 
         match color {
@@ -354,6 +426,21 @@ impl PPU {
             3 => 0x000000,
             _ => 0x000000,
         }
+    }
+
+    fn getGBCColor(&self, gbcColor: u16) -> u32
+    {
+        let r = (gbcColor & 0x1f) as u8;
+        let g = ((gbcColor >> 5) & 0x1f) as u8;
+        let b = ((gbcColor >> 10) & 0x1f) as u8;
+
+        let r8 = (r << 3) | (r >> 2);
+        let g8 = (g << 3) | (g >> 2);
+        let b8 = (b << 3) | (b >> 2);
+
+        let color = (0xff << 24) | ((r8 as u32) << 16) | ((g8 as u32) << 8) | b8 as u32;
+
+        return color;
     }
 
     fn setMode(&mut self, mode: Mode)
@@ -397,7 +484,7 @@ impl PPU {
         self.oam[index as usize] = value;
     }
 
-    pub fn readVram(&self, address: u16) -> u8
+    pub fn readVram(&self, address: u16, bank: u8) -> u8
     {
         if self.mode == Mode::PixelTransfer { return 0xff; }
 
@@ -405,12 +492,12 @@ impl PPU {
 
         if index > 8192 { return 0xff; }
 
-        let val = self.vram[self.registers.vbank as usize][index as usize];
+        let val = self.vram[bank as usize][index as usize];
 
         return val;
     }
 
-    pub fn writeVram(&mut self, address: u16, value: u8)
+    pub fn writeVram(&mut self, address: u16, value: u8, bank: u8)
     {
         // TODO: screen is glitchy if this shit is blocking the vram
         if self.mode == Mode::PixelTransfer { return; }
@@ -419,6 +506,6 @@ impl PPU {
 
         if index > 8192 { return; }
 
-        self.vram[self.registers.vbank as usize][index as usize] = value;
+        self.vram[bank as usize][index as usize] = value;
     }
 }

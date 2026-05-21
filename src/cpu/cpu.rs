@@ -588,6 +588,11 @@ impl CPU
 
     }
 
+    pub fn setGbc(&mut self)
+    {
+        self.registers.a = 0x11;
+    }
+
     pub fn step(&mut self) -> u8
     {   
         if self.handleInterrupts() { return 16; }

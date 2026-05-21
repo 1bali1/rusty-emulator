@@ -28,12 +28,19 @@ pub struct Registers
     // object color palette specification
     pub bcps: u8,
     pub bcpd: u8,
+    bpi: u8,
+
     pub ocps: u8,
     pub ocpd: u8,
+    opi: u8,
     pub opri: u8,
 
     // intr
-    pub interrupt: u8
+    pub interrupt: u8,
+
+    // cram
+    pub bgPaletteRam: [u8; 64],
+    pub objPaletteRam: [u8; 64],
 }
 
 impl Registers {
@@ -63,10 +70,14 @@ impl Registers {
             hdma5: 0,
             bcps: 0,
             bcpd: 0,
+            bpi: 0,
             ocps: 0,
             ocpd: 0,
+            opi: 0,
             opri: 0,
-            interrupt: 0
+            interrupt: 0,
+            bgPaletteRam: [0; 64],
+            objPaletteRam: [0; 64],
         };
         
         return registers;
@@ -93,10 +104,10 @@ impl Registers {
             0xff53 => self.hdma3,
             0xff54 => self.hdma4,
             0xff55 => self.hdma5,
-            0xff68 => self.bcps,
-            0xff69 => self.bcpd,
-            0xff6a => self.ocps,
-            0xff6b => self.ocpd,
+            0xff68 => self.bcps | self.bpi,
+            0xff69 => self.bgPaletteRam[self.bpi as usize],
+            0xff6a => self.ocps | self.opi,
+            0xff6b => self.objPaletteRam[self.opi as usize],
             0xff6c => self.opri,
           _ => panic!("PPU Reg addr not found (2) {:X}", address)
         };
@@ -125,10 +136,38 @@ impl Registers {
             0xff53 => self.hdma3 = value,
             0xff54 => self.hdma4 = value,
             0xff55 => self.hdma5 = value,
-            0xff68 => self.bcps = value,
-            0xff69 => self.bcpd = value,
-            0xff6a => self.ocps = value,
-            0xff6b => self.ocpd = value,
+            0xff68 => 
+            {
+                self.bcps = value & 0x80;
+                self.bpi = value & 0x3f;
+            },
+            0xff69 =>
+            {
+                self.bgPaletteRam[self.bpi as usize] = value;
+
+                if (self.bcps >> 7) & 0x01 == 1 
+                { 
+                    self.bpi += 1;
+                    
+                    if self.bpi >= 64 { self.bpi = 0 }
+                }
+            },
+            0xff6a =>
+            {
+                self.ocps = value & 0x80;
+                self.opi = value & 0x3f;
+            },
+            0xff6b =>
+            {
+                self.objPaletteRam[self.opi as usize] = value;
+
+                if (self.ocps >> 7) & 0x01 == 1 
+                { 
+                    self.opi += 1;
+                    
+                    if self.opi >= 64 { self.opi = 0 }
+                }
+            },
             0xff6c => self.opri = value,
           _ => panic!("PPU Reg addr not found (2) {:X}", address) // TODO: ff50
         };

@@ -29,6 +29,8 @@ use ringbuf::traits::{Consumer, Split};
 use std::{env, fs::{self}};
 use minifb::{Window, WindowOptions, Key};
 
+use crate::bus::getEmuMode;
+
 fn main() 
 {
     let args: Vec<String> = env::args().collect();
@@ -78,9 +80,13 @@ fn main()
 
     // cpu steup
     let mut cpu = CPU::new(sampleRate, producer);
-    let gbName = format!("{}.gb", args[1]);
 
-    cpu.bus.loadRom(&gbName);
+    cpu.bus.loadRom(&args[1]);
+
+    if getEmuMode()
+    {
+        cpu.setGbc();
+    }
     
     loop
     {

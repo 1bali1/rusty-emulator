@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::{fs::File, io::Read};
 use std::io::{self, Write};
 
@@ -13,11 +14,24 @@ use crate::timer::Timer;
 use crate::ppu::PPU;
 use crate::joypad::Joypad;
 
+static IS_GGB: AtomicBool = AtomicBool::new(false);
+
+pub fn setEmuMode(cgb: bool)
+{
+    IS_GGB.store(cgb, Ordering::Relaxed);
+}
+
+pub fn getEmuMode() -> bool
+{
+    return IS_GGB.load(Ordering::Relaxed);
+}
+
 pub struct Bus 
 {
     pub mbc: Box<dyn MBC>,
-    wram: [u8; 8192],
+    wram: [u8; 8192*8],
     hram: [u8; 127],
+    wramBank: u8,
     timer: Timer,
     serial: Serial,
     pub ppu: PPU,
@@ -41,8 +55,9 @@ impl Bus
         let bus = Self 
         { 
             mbc: Box::new(NoMBC::new([0].to_vec(), &"".to_string())),
-            wram: [0; 8192],
+            wram: [0; 8192*8],
             hram: [0; 127],
+            wramBank: 0,
             timer: timer,
             serial: serial,
             ppu: ppu,
@@ -89,9 +104,9 @@ impl Bus
         {
             //0xff4c..=0xff4d => 0xff,
             0x0000..=0x7fff => self.mbc.readRom(address),
-            0x8000..=0x9fff => self.ppu.readVram(address),
+            0x8000..=0x9fff => self.ppu.readVram(address, self.ppu.registers.vbank),
             0xa000..=0xbfff => self.mbc.readRam(address),
-            0xc000..=0xdfff => self.wram[(address - 0xc000) as usize],
+            0xc000..=0xdfff => self.readWram(address),
             0xe000..=0xfdff => self.read(address - 0x2000),
             0xfe00..=0xfe9f => self.ppu.readOam(address),
             0xff80..=0xfffe => self.hram[(address - 0xff80) as usize],
@@ -116,9 +131,9 @@ impl Bus
         {
             //0xff4c..=0xff4d => {},
             0x0000..=0x7fff => self.mbc.writeRom(address, value),
-            0x8000..=0x9fff => self.ppu.writeVram(address, value),
+            0x8000..=0x9fff => self.ppu.writeVram(address, value, self.ppu.registers.vbank),
             0xa000..=0xbfff => self.mbc.writeRam(address, value),
-            0xc000..=0xdfff => self.wram[(address - 0xc000) as usize] = value,
+            0xc000..=0xdfff => self.writeWram(address, value),
             0xe000..=0xfdff => self.write(address - 0x2000, value),
             0xfe00..=0xfe9f => self.ppu.writeOam(address, value),
             0xff80..=0xfffe => self.hram[(address - 0xff80) as usize] = value,
@@ -143,6 +158,23 @@ impl Bus
         }
     }
 
+    fn readWram(&self, address: u16) -> u8
+    {
+        let offset = (address - 0xc000) as usize;
+        let address = (0x2000 * self.wramBank as usize) + offset;
+        let val = self.wram[address];
+
+        return val;
+    }
+
+    fn writeWram(&mut self, address: u16, value: u8)
+    {
+        let offset = (address - 0xc000) as usize;
+        let address = (0x2000 * self.wramBank as usize) + offset;
+        
+        self.wram[address] = value;
+    }
+
     fn dmaTransfer(&mut self, value: u8)
     {
         let source = (value as u16) << 8;
@@ -162,6 +194,13 @@ impl Bus
         let _ = file.read_to_end(&mut buff);
 
         let carType = buff[0x0147];
+        let cgbFlag = buff[0x0143];
+
+        match cgbFlag 
+        {
+            0x80 | 0xc0 => setEmuMode(true),
+            _ => setEmuMode(false),    
+        }
 
         let titleBytes = &buff[0x0134..=0x0143];
         let untrimmed = String::from_utf8_lossy(titleBytes);
