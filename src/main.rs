@@ -22,6 +22,8 @@ mod mbc1;
 mod mbc3;
 #[path = "mbc/mbc5.rs"]
 mod mbc5;
+#[path = "mbc/savemanager.rs"]
+mod savemanager;
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpu::CPU;

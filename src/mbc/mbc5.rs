@@ -1,6 +1,4 @@
-use std::{fs::{self, File}, io::{Read, Write}};
-
-use crate::{mbc::MBC};
+use crate::{mbc::MBC, savemanager::SaveManager};
 
 pub struct MBC5
 {
@@ -10,7 +8,7 @@ pub struct MBC5
     ramBank: u8,
     ramEnabled: bool,
     hasBattery: bool,
-    gameName: String
+    saveManager: SaveManager
 }
 
 const BATTERY_TYPES: [u8; 3]  = [0x13, 0x1b, 0x1e];
@@ -22,6 +20,7 @@ impl MBC5
     {
         let mbcType = memory[0x0147];
         let hasBattery = BATTERY_TYPES.contains(&mbcType);
+        let saveManager = SaveManager::new(gameName.to_owned());
 
         let mbc5 = Self
         {
@@ -31,7 +30,7 @@ impl MBC5
             ramBank: 0,
             ramEnabled: false,
             hasBattery: hasBattery,
-            gameName: gameName.to_owned()
+            saveManager: saveManager
         };
 
         return mbc5;
@@ -104,40 +103,21 @@ impl MBC for MBC5
         let address = self.getRamAddress(address);
 
         self.ram[address] = value;
+
+        self.saveRam();
     }
 
-    fn saveRam(&self) 
+    fn saveRam(&mut self) 
     {
         if !self.hasBattery { return; }
 
-        let _ = fs::create_dir_all("saves");
-        let filePath = format!("saves/{}.sav", self.gameName);
-
-        if let Ok(mut file) = File::create(filePath)
-        {
-            let _ = file.write_all(&self.ram);
-            
-            println!("Saved!");
-        }
+        self.saveManager.saveRam(&self.ram);
     }
 
     fn loadSave(&mut self)
     {
         if !self.hasBattery { return; }
 
-        let _ = fs::create_dir_all("saves");
-        let filePath = format!("saves/{}.sav", self.gameName);
-
-        if let Ok(mut file) = File::open(filePath)
-        {
-            self.ram.clear();
-            let _ = file.read_to_end(&mut self.ram);
-
-            if self.ram.len() < 0x4000 { self.ram = vec![0; 0x4000]; }
-            else
-            {
-                println!("Save loaded!");
-            }
-        }
+        self.saveManager.loadSave(&mut self.ram);
     }
 }

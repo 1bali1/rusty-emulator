@@ -1,6 +1,4 @@
-use std::{fs::{self, File}, io::{Read, Write}};
-
-use crate::mbc::{BankingMode, MBC};
+use crate::{mbc::{BankingMode, MBC}, savemanager::SaveManager};
 
 pub struct MBC1
 {
@@ -10,8 +8,8 @@ pub struct MBC1
     romBank: u8,
     ramBank: u8,
     bankMode: BankingMode,
-    gameName: String,
-    hasBattery: bool
+    hasBattery: bool,
+    saveManager: SaveManager
 }
 
 const BATTERY_TYPES: [u8; 1] = [0x03];
@@ -23,6 +21,7 @@ impl MBC1
 
         let mbcType = memory[0x0147];
         let hasBattery = BATTERY_TYPES.contains(&mbcType);
+        let saveManager = SaveManager::new(gameName.to_owned());
 
         let mbc1 = Self
         {
@@ -32,8 +31,8 @@ impl MBC1
             romBank: 1,
             ramBank: 0,
             bankMode: BankingMode::Simple,
-            gameName: gameName.to_owned(),
-            hasBattery: hasBattery
+            hasBattery: hasBattery,
+            saveManager: saveManager
         };
 
         return mbc1;
@@ -127,38 +126,21 @@ impl MBC for MBC1
         let ramAddress = self.getRamAddress(address);
 
         self.ram[ramAddress] = value;
+
+        self.saveRam();
     }
 
-    fn saveRam(&self) 
+    fn saveRam(&mut self) 
     {
         if !self.hasBattery { return; }
 
-        let _ = fs::create_dir_all("saves");
-        let filePath = format!("saves/{}.sav", self.gameName);
-
-        if let Ok(mut file) = File::create(filePath)
-        {
-            let _ = file.write_all(&self.ram);
-        }
+        self.saveManager.saveRam(&self.ram);
     }
 
     fn loadSave(&mut self)
     {
         if !self.hasBattery { return; }
 
-        let _ = fs::create_dir_all("saves");
-        let filePath = format!("saves/{}.sav", self.gameName);
-
-        if let Ok(mut file) = File::open(filePath)
-        {
-            self.ram.clear();
-            let _ = file.read_to_end(&mut self.ram);
-
-            if self.ram.len() < 0x8000 { self.ram = vec![0; 0x8000] }
-            else
-            {
-                println!("Save loaded!");
-            }
-        }
+        self.saveManager.loadSave(&mut self.ram);
     }
 }

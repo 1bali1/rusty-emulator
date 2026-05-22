@@ -236,7 +236,8 @@ impl Bus
 
         let titleBytes = &buff[0x0134..=0x0143];
         let untrimmed = String::from_utf8_lossy(titleBytes);
-        let title = untrimmed.trim_matches(char::from(0x00)).trim();
+        let mut title = untrimmed.trim_matches(char::from(0x00)).trim().to_string();
+        self.validateGameName(&mut title);
 
         let controller: Box<dyn MBC> = match carType
         {
@@ -295,5 +296,14 @@ impl Bus
 
         self.ppu.registers.hdma.length = 0xff; 
         self.ppu.registers.hdma.active = false;
+    }
+
+    fn validateGameName(&self, gameName: &mut String)
+    {
+        *gameName = gameName.chars().filter(
+            |char|{
+                char.is_alphanumeric() || *char == ' '
+            }
+        ).collect();
     }
 }

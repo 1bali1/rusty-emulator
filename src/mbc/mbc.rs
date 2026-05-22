@@ -1,5 +1,3 @@
-use std::fs::{self, File};
-
 mod nombc;
 mod mbc1;
 mod mbc3;
@@ -20,6 +18,6 @@ pub trait MBC
     fn readRam(&self, address: u16) -> u8;
     fn writeRam(&mut self, address: u16, value: u8);
 
-    fn saveRam(&self);
+    fn saveRam(&mut self);
     fn loadSave(&mut self);
 }

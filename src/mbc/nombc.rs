@@ -36,6 +36,6 @@ impl MBC for NoMBC
 
     fn writeRam(&mut self, _address: u16, _value: u8) { }
 
-    fn saveRam(&self) { }
+    fn saveRam(&mut self) { }
     fn loadSave(&mut self) { }
 }
