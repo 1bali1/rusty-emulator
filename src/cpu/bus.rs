@@ -30,7 +30,7 @@ pub fn getEmuMode() -> bool
 pub struct Bus
 {
     pub mbc: Box<dyn MBC>,
-    wram: [u8; 8192*8],
+    wram: [u8; 32768],
     hram: [u8; 127],
     wramBank: u8,
     timer: Timer,
@@ -39,7 +39,8 @@ pub struct Bus
     pub joypad: Joypad,
     apu: APU,
     pub ie: u8,
-    pub ifl: u8
+    pub ifl: u8,
+    key1: u8
 }
 
 // TODO: remove memory vec
@@ -56,7 +57,7 @@ impl Bus
         let bus = Self 
         { 
             mbc: Box::new(NoMBC::new([0].to_vec(), &"".to_string())),
-            wram: [0; 8192*8],
+            wram: [0; 32768],
             hram: [0; 127],
             wramBank: 0,
             timer: timer,
@@ -65,7 +66,8 @@ impl Bus
             joypad: joypad,
             apu: apu,
             ie: 0,
-            ifl: 0
+            ifl: 0,
+            key1: 0x7e
         };
 
         return bus;
@@ -111,7 +113,6 @@ impl Bus
     {
         let val = match address
         {
-            //0xff4c..=0xff4d => 0xff,
             0x0000..=0x7fff => self.mbc.readRom(address),
             0x8000..=0x9fff => self.ppu.readVram(address, self.ppu.registers.vbank),
             0xa000..=0xbfff => self.mbc.readRam(address),
@@ -128,6 +129,8 @@ impl Bus
             0xff01..=0xff02 => self.serial.read(address),
             0xffff => self.ie,
             0xff0f => self.ifl,
+            0xff4d => self.key1,
+            0xff70 => self.wramBank,
             _ => 0xff
         };
 
@@ -138,7 +141,6 @@ impl Bus
     {
         match address 
         {
-            //0xff4c..=0xff4d => {},
             0x0000..=0x7fff => self.mbc.writeRom(address, value),
             0x8000..=0x9fff => self.ppu.writeVram(address, value, self.ppu.registers.vbank),
             0xa000..=0xbfff => self.mbc.writeRam(address, value),
@@ -156,6 +158,8 @@ impl Bus
             0xff01..=0xff02 => self.serial.write(address, value),
             0xffff => self.ie = value,
             0xff0f => self.ifl = value | 0xe0,
+            0xff4d => self.key1 = self.key1 & 0x01,
+            0xff70 => self.wramBank = (value | 0xfe) & 0x7,
             _ => {}
         }
 
@@ -169,8 +173,14 @@ impl Bus
 
     fn readWram(&self, address: u16) -> u8
     {
-        let offset = (address - 0xc000) as usize;
-        let address = (0x2000 * self.wramBank as usize) + offset;
+        if address < 0xd000
+        {
+            return self.wram[address as usize - 0xc000];
+        }
+
+        let bank = if self.wramBank == 0 { 1 } else { self.wramBank };
+        let offset = (address - 0xd000) as usize;
+        let address = (0x1000 * bank as usize) + offset;
         let val = self.wram[address];
 
         return val;
@@ -178,8 +188,21 @@ impl Bus
 
     fn writeWram(&mut self, address: u16, value: u8)
     {
-        let offset = (address - 0xc000) as usize;
-        let address = (0x2000 * self.wramBank as usize) + offset;
+        if address < 0xd000
+        {
+            self.wram[address as usize - 0xc000] = value;
+
+            return;
+        }
+
+        let bank = if self.wramBank == 0 { 1 } else { self.wramBank };
+        let offset = (address - 0xd000) as usize;
+        let address = (0x1000 * bank as usize) + offset;
+
+        if address > self.wram.len()
+        {
+            panic!("0x{:x}", address);
+        }
         
         self.wram[address] = value;
     }
@@ -223,11 +246,11 @@ impl Bus
             0x19 | 0x1a | 0x1b | 0x1c | 0x1d | 0x1e => Box::new(MBC5::new(buff.to_owned(), &title.to_string())),
             _ => 
             {
-                println!("0x{:x}", carType);
-
                 Box::new(MBC1::new(buff.to_owned(), &title.to_string()))
             }
         };
+
+        println!("MBC Type: 0x{:x}", carType);
 
         self.mbc = controller;
         self.mbc.loadSave();
@@ -239,8 +262,12 @@ impl Bus
     {
         self.transferBytes();
 
-        if self.ppu.registers.hdma.length == 0xff { self.ppu.registers.hdma.active = false; }
-        else { self.ppu.registers.hdma.length = self.ppu.registers.hdma.length.wrapping_add(1); }
+        if self.ppu.registers.hdma.length == 0 
+        {
+            self.ppu.registers.hdma.length = 0xff;
+            self.ppu.registers.hdma.active = false;
+        }
+        else { self.ppu.registers.hdma.length -= 1; }
     }
 
     fn transferBytes(&mut self)
@@ -248,7 +275,7 @@ impl Bus
         for _ in 0..16
         {
             let src = self.read(self.ppu.registers.hdma.source);
-            let destAddress = self.ppu.registers.hdma.dest;
+            let destAddress = (self.ppu.registers.hdma.dest & 0x1fff) | 0x8000;
 
             self.write(destAddress, src);
 
@@ -266,7 +293,7 @@ impl Bus
             self.transferBytes();
         }
 
-        self.ppu.registers.hdma.length = 0xFF; 
+        self.ppu.registers.hdma.length = 0xff; 
         self.ppu.registers.hdma.active = false;
     }
 }

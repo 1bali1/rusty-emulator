@@ -144,11 +144,7 @@ impl MBC for MBC3
             self.ram.clear();
             let _ = file.read_to_end(&mut self.ram);
 
-            if self.ram.len() < 0x4000 { self.ram = vec![0; 0x4000]; }
-            else
-            {
-                println!("Save loaded!");
-            }
+            println!("Save loaded!");
         }
     }
 }

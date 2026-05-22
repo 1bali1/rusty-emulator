@@ -82,8 +82,6 @@ impl PPU {
 
         self.cycles += cycles as usize;
 
-        self.setMode(self.mode);
-
         match self.mode {
             Mode::VBlank => self.vblank(),
             Mode::HBlank => self.hblank(),
@@ -121,7 +119,7 @@ impl PPU {
             self.cycles -= 204;
             self.registers.incLy();
 
-            if self.registers.hdma.active && self.registers.hdma.mode == 1
+            if self.registers.hdma.active && self.registers.hdma.mode == 1 && self.registers.ly < 144
             {
                 self.registers.shouldTransfer = true;
             }
@@ -444,6 +442,8 @@ impl PPU {
 
     fn setMode(&mut self, mode: Mode)
     {
+        if mode == self.mode { return; }
+
         let stat = self.registers.stat;
         self.mode = mode;
 
@@ -489,7 +489,7 @@ impl PPU {
 
         let index = address - 0x8000;
 
-        if index > 8192 { return 0xff; }
+        if index >= 8192 { return 0xff; }
 
         let val = self.vram[bank as usize][index as usize];
 
@@ -503,7 +503,7 @@ impl PPU {
 
         let index = address - 0x8000;
 
-        if index > 8192 { return; }
+        if index >= 8192 { return; }
 
         self.vram[bank as usize][index as usize] = value;
     }
