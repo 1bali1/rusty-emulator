@@ -106,8 +106,8 @@ fn main()
                 cpu.bus.joypad.setKey(window.is_key_down(Key::W), 2, false);
                 cpu.bus.joypad.setKey(window.is_key_down(Key::S), 3, false);
 
-                cpu.bus.joypad.setKey(window.is_key_down(Key::R), 0, true);
-                cpu.bus.joypad.setKey(window.is_key_down(Key::F), 1, true);
+                cpu.bus.joypad.setKey(window.is_key_down(Key::F) || window.is_key_down(Key::Right), 0, true);
+                cpu.bus.joypad.setKey(window.is_key_down(Key::R) || window.is_key_down(Key::Left), 1, true);
                 cpu.bus.joypad.setKey(window.is_key_down(Key::Space), 2, true);
                 cpu.bus.joypad.setKey(window.is_key_down(Key::Enter), 3, true);
 
